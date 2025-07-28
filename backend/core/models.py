@@ -4,8 +4,8 @@ class Org(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(null=True, blank=True)
-    phone = models.CharField(max_length=255, null=True, blank=True)
-    email = models.CharField(max_length=255, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True, help_text="联系电话")
+    email = models.EmailField(max_length=255, null=True, blank=True, help_text="组织邮箱")
     org_type = models.CharField(max_length=255, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -20,6 +20,7 @@ class Org(models.Model):
 
 class Department(models.Model):
     id = models.AutoField(primary_key=True)
+    org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name='departments', help_text="所属组织")
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(null=True, blank=True)
     parent = models.ForeignKey('self', null=True, blank=True, related_name='children', on_delete=models.SET_NULL)
@@ -47,3 +48,4 @@ class Category(models.Model):
 
     class Meta:
         db_table = "categories"
+        unique_together = ('name', 'parent')
