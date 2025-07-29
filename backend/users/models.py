@@ -59,5 +59,5 @@ class Staff(models.Model):
         return self.name
 
     class Meta:
-        db_table = 'users_staffs'"
+        db_table = 'users_staffs'
 
