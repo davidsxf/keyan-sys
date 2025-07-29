@@ -1,7 +1,7 @@
 # from django.db import router
 from ninja import Router
 from ninja import ModelSchema
-from .models import Org, Department, Category
+from .models import Org, Category
 
 
 router = Router(tags=['core'])
@@ -46,44 +46,7 @@ def delete_category(request, category_id: int):
 
 
 
-# Department schemas
-class DepartmentIn(ModelSchema):
-    class Meta:
-        model = Department
-        exclude = ["id", "created_at", "updated_at"]
-        from_attributes = True
-
-class DepartmentOut(ModelSchema):
-    class Meta:
-        model = Department
-        fields = "__all__"
-        from_attributes = True
-
-# Department endpoints
-@router.get("/departments", response=list[DepartmentOut])
-def list_departments(request):
-    return Department.objects.all()
-
-@router.get("/departments/{department_id}", response=DepartmentOut)
-def get_department(request, department_id: int):
-    return Department.objects.get(id=department_id)
-
-@router.post("/departments", response=DepartmentOut)
-def create_department(request, data: DepartmentIn):
-    return Department.objects.create(**data.dict())
-
-@router.put("/departments/{department_id}", response=DepartmentOut)
-def update_department(request, department_id: int, data: DepartmentIn):
-    department = Department.objects.get(id=department_id)
-    for attr, value in data.dict().items():
-        setattr(department, attr, value)
-    department.save()
-    return department
-
-@router.delete("/departments/{department_id}")
-def delete_department(request, department_id: int):
-    Department.objects.get(id=department_id).delete()
-    return {"success": True}       
+ 
 # 组织架构相关Schema
 
 class OrgIn(ModelSchema):

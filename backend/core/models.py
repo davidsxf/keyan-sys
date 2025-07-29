@@ -18,20 +18,7 @@ class Org(models.Model):
         db_table = "orgs"
 
 
-class Department(models.Model):
-    id = models.AutoField(primary_key=True)
-    org = models.ForeignKey(Org, on_delete=models.CASCADE, related_name='departments', help_text="所属组织")
-    name = models.CharField(max_length=255, unique=True)
-    description = models.TextField(null=True, blank=True)
-    parent = models.ForeignKey('self', null=True, blank=True, related_name='children', on_delete=models.SET_NULL)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        db_table = "departments"
 
 
 class Category(models.Model):
