@@ -21,7 +21,7 @@ class Team(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    department = models.ForeignKey('Department', related_name='teams', on_delete=models.CASCADE)
+    department = models.ForeignKey('Department',null=True, blank=True, related_name='teams', on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

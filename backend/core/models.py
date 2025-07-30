@@ -19,8 +19,6 @@ class Org(models.Model):
 
 
 
-
-
 class Category(models.Model):
     """类别模型"""
     name = models.CharField(max_length=50, help_text="类别名称")

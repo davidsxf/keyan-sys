@@ -48,7 +48,7 @@ class TeamIn(ModelSchema):
     class Meta:
         model = Team
         exclude = ["id", "created_at", "updated_at"]
-        from_attributes = False
+        from_attributes = True
 
 class TeamOut(ModelSchema):
     class Meta:
@@ -66,19 +66,12 @@ def get_team(request, team_id: int):
 
 @router.post("/teams", response=TeamOut)
 def create_team(request, data: TeamIn):
-    data_dict = data.dict()
-    department_id = data_dict.pop('department')
-    department = Department.objects.get(id=department_id)
-    return Team.objects.create(department=department,** data_dict)
+    return Team.objects.create(**data.dict())
 
 @router.put("/teams/{team_id}", response=TeamOut)
 def update_team(request, team_id: int, data: TeamIn):
     team = Team.objects.get(id=team_id)
-    data_dict = data.dict()
-    if 'department' in data_dict:
-        department_id = data_dict.pop('department')
-        team.department = Department.objects.get(id=department_id)
-    for attr, value in data_dict.items():
+    for attr, value in data.dict().items():
         setattr(team, attr, value)
     team.save()
     return team
