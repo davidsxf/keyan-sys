@@ -38,7 +38,7 @@
 </template>
 
 <script lang="ts" setup>
-import { Grid, FolderOpened, Document, Lightbulb, UserFilled, Money } from '@element-plus/icons-vue'
+import { Grid, FolderOpened, Document, UserFilled, Money } from '@element-plus/icons-vue'
 </script>
 
 <style scoped>
