@@ -24,3 +24,12 @@
 访问 Swagger UI 文档
 默认情况下，Django-Ninja 在以下路径提供 Swagger UI：
 http://localhost:8000/api/v1/docs
+
+npm install pnpm
+
+pnpm install
+
+pnpm run dev
+
+https://pure-admin.cn/
+https://pure-admin.cn/docs
