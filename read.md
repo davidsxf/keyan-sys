@@ -32,7 +32,6 @@ npm install pnpm
 
 pnpm install
 
-pnpm run dev
+pnpm  dev
 
 https://pure-admin.cn/
-https://pure-admin.cn/docs

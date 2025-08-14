@@ -68,6 +68,8 @@
     "qs": "^6.14.0",
     "responsive-storage": "^2.2.0",
     "sortablejs": "^1.15.6",
+    "vite-plugin-html": "^3.2.2",
+    "vite-plugin-mock": "^3.0.2",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1",
     "vue-tippy": "^6.7.1",
