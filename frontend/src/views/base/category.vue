@@ -157,19 +157,36 @@ const categoryTree = ref<InstanceType<typeof ElTree>>();
 // 获取分类数据
 const fetchCategories = async () => {
   try {
+    console.log("开始获取分类数据");
     const response = await getCategories();
+    console.log("获取分类数据响应:", response);
     if (response.success) {
       categories.value = response.data;
       // 生成扁平化分类列表
       flatCategories.value = flattenCategories(response.data);
+      ElMessage.success("获取分类数据成功");
     } else {
-      ElMessage.error("获取分类数据失败");
+      console.error("获取分类数据失败，响应数据:", response);
+      ElMessage.error(`获取分类数据失败: ${response.message || '未知错误'}`);
     }
   } catch (error) {
     console.error("获取分类数据异常:", error);
-    ElMessage.error("获取分类数据异常");
+    // 检查是否是网络错误
+    if (error.message.includes('Network Error')) {
+      ElMessage.error('网络错误，请检查网络连接');
+    } else if (error.response) {
+      // 服务器返回了错误状态码
+      ElMessage.error(`获取分类数据异常: ${error.response.status} ${error.response.statusText}`);
+    } else {
+      ElMessage.error("获取分类数据异常");
+    }
   }
 };
+
+// 页面加载时获取分类数据
+onMounted(() => {
+  fetchCategories();
+});
 
 // 扁平化分类树
 const flattenCategories = (categories: Category[]): Category[] => {

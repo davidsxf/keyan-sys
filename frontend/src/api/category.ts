@@ -1,4 +1,4 @@
-import { http } from "@/utils/http/index";
+import { http } from "@/utils/http";
 
 // 分类数据类型定义
 interface Category {  
@@ -26,8 +26,20 @@ export interface SingleCategoryResponse {
 
 // 获取所有分类
 export const getCategories = () => {
+  console.log("获取所有分类");
   return http.get<CategoryResponse>("/api/categories/");
 };
+
+// 获取单个分类
+// 添加错误处理示例
+export const getCategoriesWithErrorHandling = () => {
+  return http.get<CategoryResponse>("/api/categories/")
+    .catch(error => {
+      console.error("获取分类数据失败:", error);
+      // 可以添加重试逻辑或返回默认数据
+      return { success: false, data: [] };
+    });
+}
 
 // 获取单个分类
 export const getCategory = (id: number) => {

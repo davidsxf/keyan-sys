@@ -9,10 +9,10 @@ export default {
   children: [
     {
       path: "/fighting/index",
-      name: "Fighting1",
+      name: "Fighting",
       component: () => import("@/views/fighting/index.vue"),
       meta: {
-        title: "加油1",
+        title: "加油",
         showParent: true
       }
     }

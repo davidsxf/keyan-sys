@@ -6,6 +6,11 @@ from .models import Org, Category
 
 router = Router(tags=['core'])
 
+#加一个测试的api
+@router.get("/test")
+def test(request):
+    return {"message": "Hello, world!"}
+
 # Category schemas
 class CategoryIn(ModelSchema):
     class Meta:
