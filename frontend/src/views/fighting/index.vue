@@ -15,7 +15,7 @@ const loading = ref(false);
 const fetchTestData = async () => {
   loading.value = true;
   try {
-    const response = await http.get('/api/v1/test');
+    const response = await http.get('/api/v1/core/test');
     apiData.value = response;
     console.log(response);
 

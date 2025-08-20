@@ -27,7 +27,8 @@ export interface SingleCategoryResponse {
 // 获取所有分类
 export const getCategories = () => {
   console.log("获取所有分类");
-  return http.get<CategoryResponse>("/api/categories/");
+  return http.get<CategoryResponse>("/api/v1/core/categories");
+
 };
 
 // 获取单个分类
