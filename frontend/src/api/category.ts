@@ -26,9 +26,8 @@ export interface SingleCategoryResponse {
 
 // 获取所有分类
 export const getCategories = () => {
-  console.log("获取所有分类");
+  
   return http.get<CategoryResponse>("/api/v1/core/categories");
-
 };
 
 // 获取单个分类
@@ -44,20 +43,20 @@ export const getCategoriesWithErrorHandling = () => {
 
 // 获取单个分类
 export const getCategory = (id: number) => {
-  return http.get<SingleCategoryResponse>(`/api/categories/${id}/`);
+  return http.get<SingleCategoryResponse>(`/api/v1/core/categories/${id}`);
 };
 
 // 创建分类
 export const createCategory = (data: Category) => {
-  return http.post<SingleCategoryResponse>("/api/categories/", data);
+  return http.post<SingleCategoryResponse>("/api/v1/core/categories", data);
 };
 
 // 更新分类
 export const updateCategory = (id: number, data: Category) => {
-  return http.request<SingleCategoryResponse>("put", `/api/categories/${id}/`, { data });
+  return http.request<SingleCategoryResponse>("put", `/api/v1/core/categories/${id}`, { data });
 };
 
 // 删除分类
 export const deleteCategory = (id: number) => {
-  return http.request<{ success: boolean }>("delete", `/api/categories/${id}/`);
+  return http.request<{ success: boolean }>("delete", `/api/v1/core/categories/${id}`);
 };
