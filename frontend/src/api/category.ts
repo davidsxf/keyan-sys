@@ -4,9 +4,9 @@ import { http } from "@/utils/http";
 interface Category {  
   id?: number | null;   
   name: string;  
-  parent?: number | null;  
-  weight?: number | null;  
-  sort_order?: number | null;  
+  parent?: number ;  
+  weight?: number ;  
+  sort_order?: number;  
   // created_at?: string;  
   // updated_at?: string;  
   // children?: Category[];  
@@ -66,7 +66,7 @@ export const createCategory = (data: Category) => {
 // 测试数据示例
 // const testData: Category = { id: undefined, name: '333', parent: 1, weight: 0, sort_order: 0 };
 //   console.log("创建分类cat:", testData);
-  return http.post("/api/v1/core/categories", data);
+  return http.post<SingleCategoryResponse>("/api/v1/core/categories", data);
 };
 
 // 更新分类

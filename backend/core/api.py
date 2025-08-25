@@ -36,12 +36,15 @@ def get_category(request, category_id: int):
 @router.post("/categories", response=CategoryOut)
 def create_category(request, data: CategoryIn):
     data_dict = data.dict()
+
+    print(data_dict)
     # Convert parent ID to Category instance if provided and not null
     if data_dict.get('parent') is not None:
         try:
             data_dict['parent'] = Category.objects.get(id=data_dict['parent'])
         except Category.DoesNotExist:
             data_dict['parent'] = None
+    
     return Category.objects.create(**data_dict)
 
 @router.put("/categories/{category_id}", response=CategoryOut)

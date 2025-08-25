@@ -65,19 +65,19 @@ const openEditDialog = (category: Category) => {
 const saveCategory = async () => {
   try {
     // 准备发送的数据，确保parent字段正确处理
-    const sendData = {
-      ...currentCategory,
-      parent: currentCategory.parent === 0 ? null : currentCategory.parent
-    };
+    // const sendData = {
+    //   ...currentCategory,
+    //   parent: currentCategory.parent === 0 ? null : currentCategory.parent
+    // };
     
     if (dialogType.value === 'create') {
-      console.log('创建分类:', sendData);
-      await createCategory(sendData);
+      console.log('创建分类:', currentCategory);
+      await createCategory(currentCategory);
       ElMessage.success('创建成功');
     } else {
     
-      console.log('更新父级id:', sendData.parent);
-      await updateCategory(currentCategory.id!, sendData);
+      console.log('更新父级id:', currentCategory.parent);
+      await updateCategory(currentCategory.id!, currentCategory);
       ElMessage.success('更新成功');
     }
     dialogVisible.value = false;
