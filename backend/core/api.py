@@ -35,12 +35,26 @@ def get_category(request, category_id: int):
 
 @router.post("/categories", response=CategoryOut)
 def create_category(request, data: CategoryIn):
-    return Category.objects.create(**data.dict())
+    data_dict = data.dict()
+    # Convert parent ID to Category instance if provided and not null
+    if data_dict.get('parent') is not None:
+        try:
+            data_dict['parent'] = Category.objects.get(id=data_dict['parent'])
+        except Category.DoesNotExist:
+            data_dict['parent'] = None
+    return Category.objects.create(**data_dict)
 
 @router.put("/categories/{category_id}", response=CategoryOut)
 def update_category(request, category_id: int, data: CategoryIn):
     category = Category.objects.get(id=category_id)
-    for attr, value in data.dict().items():
+    data_dict = data.dict()
+    # Convert parent ID to Category instance if provided and not null
+    if data_dict.get('parent') is not None:
+        try:
+            data_dict['parent'] = Category.objects.get(id=data_dict['parent'])
+        except Category.DoesNotExist:
+            data_dict['parent'] = None
+    for attr, value in data_dict.items():
         setattr(category, attr, value)
     category.save()
     return category

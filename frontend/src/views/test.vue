@@ -25,10 +25,10 @@ const fetchListData = async () => {
   loading.value = true;
   try {
     const data = await getCategories();
-    console.log('API响应数据:', data);
+    // console.log('API响应数据:', data.data);
     
-    if (data && Array.isArray(data)) {
-      listData.value = data;
+    if (data && data.success ) {
+      listData.value = data.data;
       ElMessage.success('获取列表数据成功');
     } else {
       ElMessage.error('获取列表数据失败');
@@ -64,11 +64,20 @@ const openEditDialog = (category: Category) => {
 // 保存分类
 const saveCategory = async () => {
   try {
+    // 准备发送的数据，确保parent字段正确处理
+    const sendData = {
+      ...currentCategory,
+      parent: currentCategory.parent === 0 ? null : currentCategory.parent
+    };
+    
     if (dialogType.value === 'create') {
-      await createCategory(currentCategory);
+      console.log('创建分类:', sendData);
+      await createCategory(sendData);
       ElMessage.success('创建成功');
     } else {
-      await updateCategory(currentCategory.id!, currentCategory);
+    
+      console.log('更新父级id:', sendData.parent);
+      await updateCategory(currentCategory.id!, sendData);
       ElMessage.success('更新成功');
     }
     dialogVisible.value = false;
