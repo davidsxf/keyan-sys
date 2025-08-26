@@ -25,7 +25,7 @@ const fetchListData = async () => {
   loading.value = true;
   try {
     const data = await getCategories();
-    // console.log('API响应数据:', data.data);
+    console.log('API响应数据:', data.data);
     
     if (data && data.success ) {
       listData.value = data.data;
@@ -34,7 +34,7 @@ const fetchListData = async () => {
       ElMessage.error('获取列表数据失败');
     }
   } catch (error) {
-    console.error('获取列表数据失败:', error);
+    // console.error('获取列表数据失败:', error);
     ElMessage.error('获取列表数据失败');
   } finally {
     loading.value = false;
@@ -64,19 +64,15 @@ const openEditDialog = (category: Category) => {
 // 保存分类
 const saveCategory = async () => {
   try {
-    // 准备发送的数据，确保parent字段正确处理
-    // const sendData = {
-    //   ...currentCategory,
-    //   parent: currentCategory.parent === 0 ? null : currentCategory.parent
-    // };
+
     
     if (dialogType.value === 'create') {
-      console.log('创建分类:', currentCategory);
+      // console.log('创建分类:', currentCategory);
       await createCategory(currentCategory);
       ElMessage.success('创建成功');
     } else {
     
-      console.log('更新父级id:', currentCategory.parent);
+      console.log('更新父级id:', currentCategory);
       await updateCategory(currentCategory.id!, currentCategory);
       ElMessage.success('更新成功');
     }
@@ -160,7 +156,7 @@ onMounted(() => {
           <el-input v-model="currentCategory.name" placeholder="请输入分类名称" />
         </el-form-item>
         <el-form-item label="父级ID" prop="parent">
-          <el-input-number v-model="currentCategory.parent" :min="0" placeholder="请输入父级ID" />
+          <el-input v-model="currentCategory.parent" placeholder="请输入父级ID" />
         </el-form-item>
         <el-form-item label="权重" prop="weight">
           <el-input-number v-model="currentCategory.weight" :min="0" />

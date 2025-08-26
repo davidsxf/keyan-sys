@@ -1,81 +1,192 @@
 import { http } from "@/utils/http";
 
 // 分类数据类型定义
-interface Category {  
-  id?: number | null;   
-  name: string;  
-  parent?: number ;  
-  weight?: number ;  
-  sort_order?: number;  
-  // created_at?: string;  
-  // updated_at?: string;  
-  // children?: Category[];  
+export interface Category {
+  id: number;
+  name: string;
+  parent: number | null;
+  weight: number;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+  has_children?: boolean;
+  children?: Category[];
 }
 
-// 分类API响应类型
+export interface CategoryFormData {
+  name: string;
+  parent: number | null;
+  weight: number;
+  sort_order: number;
+}
+
 export interface CategoryResponse {
   success: boolean;
-  data: Category[];
+  data?: Category | Category[];
+  message?: string;
+  errors?: Record<string, string[]>;
 }
 
-// 单个分类API响应类型
-export interface SingleCategoryResponse {
-  success: boolean;
-  data: Category;
-}
-
-// 获取所有分类
-export const getCategories = () => {
+/**
+ * 获取类别列表
+ * @param parentId 可选，父类别ID，用于筛选子类别
+ * @returns 类别列表数据，包含success字段
+ */
+export const getCategories = async (parentId?: number): Promise<CategoryResponse> => {
+  // 构建查询参数
+  const params = parentId !== undefined ? { parent: parentId } : {};
   
-  return http.get<CategoryResponse>("/api/v1/core/categories")
-    .then(response => {
-      // console.log("获取分类:", response);
-      return { data: response, success: true };
-    })
-    .catch(error => {
-      // console.error("获取分类数据失败:", error);
-      // 可以添加重试逻辑或返回默认数据
-      return { success: false, data: [] };
-    });
-};
-
-// 获取单个分类
-// 添加错误处理示例
-// export const getCategoriesWithErrorHandling = () => {
-//   return http.get<CategoryResponse>("/api/categories/")
-//     .catch(error => {
-//       console.error("获取分类数据失败:", error);
-//       // 可以添加重试逻辑或返回默认数据
-//       return { success: false, data: [] };
-//     });
-// }
-
-// 获取单个分类
-export const getCategory = (id: number) => {
-  return http.get<SingleCategoryResponse>(`/api/v1/core/categories/${id}`);
-};
-
-// 创建分类
-export const createCategory = (data: Category) => {
-  // 处理parent_id
-  if (data.parent === 0 || data.parent === null) {
-    data.parent = null;
+  try {
+    // 调用后端API获取类别列表
+    const response = await http.get<CategoryResponse>("/api/v1/core/categories", { params });
+    // console.log("获取类别列表成功:", response);
+    // 确保返回对象包含success字段
+    if (response && typeof response === 'object') {
+      if ('success' in response) {
+        return response as CategoryResponse;
+      } else {
+        // 如果后端返回的响应没有success字段，手动添加
+        return { success: true, data: response as Category | Category[] };
+      }
+    } else {
+      // 如果响应不是对象，包装成标准格式
+      return { success: true, data: response as Category | Category[] };
+    }
+  } catch (error) {
+    console.log("获取类别列表失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
   }
-  // 加个测试
-  //{id: undefined, name: '333', parent_id: 1, weight: 0, sort_order: 0}
-// 测试数据示例
-// const testData: Category = { id: undefined, name: '333', parent: 1, weight: 0, sort_order: 0 };
-//   console.log("创建分类cat:", testData);
-  return http.post<SingleCategoryResponse>("/api/v1/core/categories", data);
 };
 
-// 更新分类
-export const updateCategory = (id: number, data: Category) => {
-  // console.log("更新分类cat:", data);
-  return http.request<SingleCategoryResponse>("put", `/api/v1/core/categories/${id}`, { data });
+
+// 获取单个类别详情
+export const getCategory = async (id: number): Promise<CategoryResponse> => {
+  try {
+    const response = await http.get<CategoryResponse>(`/api/v1/core/categories/${id}`);
+    // console.log("获取类别详情成功:", response);
+    
+    // 确保返回对象包含success字段
+    if (response && typeof response === 'object') {
+      if ('success' in response) {
+        return response as CategoryResponse;
+      } else {
+        // 如果后端返回的响应没有success字段，手动添加
+        return { success: true, data: response as Category };
+      }
+    } else {
+      // 如果响应不是对象，包装成标准格式
+      return { success: true, data: response as Category };
+    }
+  } catch (error) {
+    console.log("获取类别详情失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
+  }
 };
 
-// 删除分类
-export const deleteCategory = (id: number) => {
-  return http.request<{ success: boolean }>("delete", `/api/v1/core/categories/${id}`);
+// 创建新类别
+export const createCategory = async (data: CategoryFormData): Promise<CategoryResponse> => {
+  try {
+    // 调用后端API创建新类别
+    const response = await http.post<CategoryResponse>('/api/v1/core/categories', data);
+    // console.log("创建类别成功:", response);
+    
+    // 确保返回对象包含success字段
+    if (response && typeof response === 'object') {
+      if ('success' in response) {
+        return response as CategoryResponse;
+      } else {
+        // 如果后端返回的响应没有success字段，手动添加
+        return { success: true, data: response as Category };
+      }
+    } else {
+      // 如果响应不是对象，包装成标准格式
+      return { success: true, data: response as Category };
+    }
+  } catch (error) {
+    console.log("创建类别失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
+  }
+};
+
+// 更新类别
+export const updateCategory = async (id: number, data: CategoryFormData): Promise<CategoryResponse> => {
+  try {
+    // 调用后端API更新类别
+    console.log('传入类别:', id, data);
+    const response = await http.request<CategoryResponse>('PUT', `/api/v1/core/categories/${id}`, { data });
+    console.log("更新类别成功:", response);
+    
+    // 确保返回对象包含success字段
+    if (response && typeof response === 'object') {
+      if ('success' in response) {
+        return response as CategoryResponse;
+      } else {
+        // 如果后端返回的响应没有success字段，手动添加
+        return { success: true, data: response as Category };
+      }
+    } else {
+      // 如果响应不是对象，包装成标准格式
+      return { success: true, data: response as Category };
+    }
+  } catch (error) {
+    console.log("更新类别失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
+  }
+};
+
+// 删除类别
+export const deleteCategory = async (id: number): Promise<CategoryResponse> => {
+  try {
+    // 调用后端API删除类别
+    await http.request<void>('DELETE', `/api/v1/core/categories/${id}`);
+    // console.log("删除类别成功:", id);
+    
+    // 删除成功时返回success: true
+    return { success: true };
+  } catch (error) {
+    console.log("删除类别失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
+  }
+};
+
+// 获取所有顶级类别（用于下拉选择）
+export const getTopLevelCategories = async (): Promise<CategoryResponse> => {
+  try {
+    // 调用getCategories函数获取顶级类别（parent为null）
+    const response = await getCategories(null);
+    return response;
+  } catch (error) {
+    console.log("获取顶级类别失败:", error);
+    // 错误情况下返回包含success: false的对象
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '未知错误',
+      errors: error instanceof Error ? { general: [error.message] } : undefined
+    };
+  }
 };
