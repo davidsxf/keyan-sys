@@ -1,37 +1,19 @@
-from ninja import ModelSchema
-from .models import Category
-from typing import Optional
+from ninja import Schema
+from typing import List, Optional
 
-class CategoryIn(ModelSchema):
-    """用于创建和更新类别的输入模型"""
-    class Meta:
-        model = Category
-        exclude = ["id", "created_at", "updated_at"]
-        from_attributes = True
+class CategoryIn(Schema):
+    name: str
+    parent_id: Optional[int] = None
+    weight: int = 0
+    sort_order: int = 0
 
-class CategoryListOut(ModelSchema):
-    """用于列表展示的输出模型"""
-    has_children: bool = False
+class CategoryOut(Schema):
+    id: int
+    name: str
+    parent_id: Optional[int]
+    weight: int
+    sort_order: int
+    children: List['CategoryOut'] = []
     
-    class Meta:
-        model = Category
-        fields = ["id", "name", "parent", "weight", "sort_order"]
-        from_attributes = True
-    
-    @staticmethod
-    def resolve_has_children(obj):
-        return obj.children.exists()
-
-class CategoryOut(ModelSchema):
-    """用于详情展示的输出模型"""
-    children: list["CategoryListOut"] = []
-    
-    class Meta:
-        model = Category
-        fields = ["id", "name", "parent", "weight", "sort_order", "created_at", "updated_at"]
-        from_attributes = True
-    
-    @staticmethod
-    def resolve_children(obj):
-        return obj.children.order_by('sort_order').all()
-    
+# 解决自引用问题
+CategoryOut.update_forward_refs()
