@@ -31,7 +31,7 @@ export interface ListResponse {
   total: number;
 }
 
-import { Org, OrgForm, ApiResponse } from '@/types/org';
+// import { Org, OrgForm, ApiResponse } from '@/types/org';
 
 
 const API_BASE = '/api/v1/core';
@@ -66,6 +66,7 @@ export const orgApi = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    
     return response.json();
   },
 

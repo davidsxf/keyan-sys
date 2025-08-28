@@ -39,8 +39,3 @@ class OrgOut(Schema):
     org_type: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-
-class Message(Schema):
-    """通用消息响应"""
-    message: str
-    success: bool
