@@ -1,11 +1,11 @@
 from ninja import Router
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-
+from ninja.errors import HttpError
 from typing import List,Optional
 from .models import Category,Org
 
-from .schemas import CategoryIn, CategoryOut,OrgIn, OrgOut, Message
+from .schemas import CategoryIn, CategoryOut,OrgIn, OrgOut
 
 
 router = Router(tags=['core'])
@@ -53,18 +53,15 @@ def delete_category(request, category_id: int):
 
  #机构
 
-@router.post("/orgs/", response={201: OrgOut, 400: Message})
+@router.post("/orgs/", response={201: OrgOut, 400: dict})
 def create_org(request, data: OrgIn):
     """创建组织"""
-    try:
-        # 检查名称是否已存在
-        if Org.objects.filter(name=data.name).exists():
-            return 400, {"message": "组织名称已存在", "success": False}
-        
-        org = Org.objects.create(**data.dict())
-        return 201, org
-    except Exception as e:
-        return 400, {"message": f"创建失败: {str(e)}", "success": False}
+    # 检查名称是否已存在
+    if Org.objects.filter(name=data.name).exists():
+        return 400, {"message": "组织名称已存在"}
+    
+    org = Org.objects.create(**data.dict())
+    return 201, org
 
 
 @router.get("/orgs/", response=List[OrgOut])
@@ -85,32 +82,32 @@ def list_orgs(request, search: Optional[str] = None,
     return orgs[skip:skip + limit]
 
 
-@router.get("/orgs/{org_id}/", response={200: OrgOut, 404: Message})
+@router.get("/orgs/{org_id}/", response=OrgOut)
 def get_org(request, org_id: int):
     """根据ID获取组织详情"""
     org = get_object_or_404(Org, id=org_id)
-    return 200, org
+    return org
 
 
-@router.put("/orgs/{org_id}/", response={200: OrgOut, 400: Message, 404: Message})
+@router.put("/orgs/{org_id}/", response=OrgOut)
 def update_org(request, org_id: int, data: OrgIn):
     """更新组织信息"""
     org = get_object_or_404(Org, id=org_id)
     
     # 检查名称重复（排除自身）
     if Org.objects.filter(name=data.name).exclude(id=org_id).exists():
-        return 400, {"message": "组织名称已存在", "success": False}
+        raise HttpError(400, "组织名称已存在")
     
     for attr, value in data.dict().items():
         setattr(org, attr, value)
     org.save()
     
-    return 200, org
+    return org
 
 
-@router.delete("/orgs/{org_id}/", response={200: Message, 404: Message})
+@router.delete("/orgs/{org_id}/", response={204: None})
 def delete_org(request, org_id: int):
     """删除组织"""
     org = get_object_or_404(Org, id=org_id)
     org.delete()
-    return 200, {"message": "组织删除成功", "success": True}
+    return 204, None

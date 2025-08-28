@@ -19,18 +19,6 @@ export interface OrgForm {
 }
 
 
-export interface ApiResponse<T = any> {
-  message?: string;
-  success: boolean;
-  data?: T;
-}
-
-
-export interface ListResponse {
-  items: Org[];
-  total: number;
-}
-
 // import { Org, OrgForm, ApiResponse } from '@/types/org';
 
 
@@ -60,33 +48,47 @@ export const orgApi = {
 
 
   // 创建组织
-  async createOrg(data: OrgForm): Promise<ApiResponse<{ id: number }>> {
+  async createOrg(data: OrgForm): Promise<Org> {
     const response = await fetch(`${API_BASE}/orgs/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
     
+    if (response.status === 400) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+    
+    if (!response.ok) throw new Error('创建组织失败');
     return response.json();
   },
 
 
   // 更新组织
-  async updateOrg(id: number, data: OrgForm): Promise<ApiResponse> {
+  async updateOrg(id: number, data: OrgForm): Promise<Org> {
     const response = await fetch(`${API_BASE}/orgs/${id}/`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    
+    if (response.status === 400) {
+      const error = await response.json();
+      throw new Error(error.message);
+    }
+    
+    if (!response.ok) throw new Error('更新组织失败');
     return response.json();
   },
 
 
   // 删除组织
-  async deleteOrg(id: number): Promise<ApiResponse> {
+  async deleteOrg(id: number): Promise<void> {
     const response = await fetch(`${API_BASE}/orgs/${id}/`, {
       method: 'DELETE'
     });
-    return response.json();
+    
+    if (!response.ok) throw new Error('删除组织失败');
   }
 };

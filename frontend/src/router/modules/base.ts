@@ -15,6 +15,15 @@ export default {
         title: "类别",
         showParent: true
       }
+    },
+    {
+      path: "/base/org",
+      name: "Org",
+      component: () => import("@/views/base/org.vue"),
+      meta: {
+        title: "组织",
+        showParent: true
+      }
     }
     // {
     //   path: "/base/effort",
