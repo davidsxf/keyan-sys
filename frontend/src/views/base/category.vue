@@ -1,19 +1,56 @@
 <!-- CategoryManagement.vue -->
 <template>
   <div class="category-management">
-    <el-button type="primary" @click="showCreateDialog">添加分类</el-button>
-    
-    <el-table :data="categories" row-key="id" default-expand-all>
-      <el-table-column prop="name" label="分类名称" />
-      <el-table-column prop="weight" label="权重" width="100" />
-      <el-table-column prop="sort_order" label="排序" width="100" />
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
-          <el-button size="small" @click="editCategory(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteCategory(row.id)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <h2>分类管理</h2>
+          <el-button type="primary" @click="showCreateDialog">添加分类</el-button>
+        </div>
+      </template>
+
+      <!-- 搜索栏 -->
+      <div class="search-bar">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索分类名称"
+          style="width: 300px"
+          @keyup.enter="loadCategories"
+        >
+          <template #append>
+            <el-button @click="loadCategories">
+              <el-icon><Search /></el-icon>
+            </el-button>
+          </template>
+        </el-input>
+      </div>
+
+      <!-- 分类表格 -->
+      <el-table :data="categories" row-key="id" default-expand-all v-loading="loading">
+        <el-table-column prop="name" label="分类名称" />
+        <el-table-column prop="weight" label="权重" width="100" />
+        <el-table-column prop="sort_order" label="排序" width="100" />
+        <el-table-column label="操作" width="200">
+          <template #default="{ row }">
+            <el-button size="small" @click="editCategory(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="deleteCategory(row.id)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 分页控件 -->
+      <div class="pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="totalCount"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="loadCategories"
+          @current-change="loadCategories"
+        />
+      </div>
+    </el-card>
 
     <!-- 添加/编辑对话框 -->
     <el-dialog :title="dialogTitle" v-model="dialogVisible">
@@ -48,11 +85,18 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { Category, CategoryForm } from '@/api/category'
 import { categoryApi } from '@/api/category'
 
 const categories = ref<Category[]>([])
+const loading = ref(false)
+const searchKeyword = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalCount = ref(0)
+
 const dialogVisible = ref(false)
 const isEditing = ref(false)
 const editingId = ref<number>()
@@ -82,9 +126,15 @@ const dialogTitle = computed(() => isEditing.value ? '编辑分类' : '添加分
 
 const loadCategories = async () => {
   try {
-    categories.value = await categoryApi.getCategories()
+    loading.value = true
+    categories.value = await categoryApi.getCategories(searchKeyword.value, currentPage.value, pageSize.value)
+    // 对于树形结构的分类，totalCount应该是根节点的总数
+    // 由于后端API返回的是完整的树形结构，我们直接获取返回的根节点数量作为totalCount
+    totalCount.value = categories.value.length
   } catch (error) {
     ElMessage.error('加载分类失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -145,3 +195,21 @@ onMounted(() => {
   loadCategories()
 })
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-bar {
+  margin-bottom: 20px;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+</style>

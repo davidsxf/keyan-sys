@@ -24,7 +24,26 @@ export default {
         title: "组织",
         showParent: true
       }
-    }
+    },
+    {
+      path: "/base/department",
+      name: "Department",
+      component: () => import("@/views/base/department.vue"),
+      meta: {
+        title: "部门",
+        showParent: true
+      }
+    },
+    {
+      path: "/base/team",
+      name: "Team",
+      component: () => import("@/views/base/team.vue"),
+      meta: {
+        title: "团队",
+        showParent: true
+      }
+    },
+
     // {
     //   path: "/base/effort",
     //   name: "Effort",

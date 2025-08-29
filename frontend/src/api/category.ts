@@ -20,8 +20,15 @@ const API_BASE = '/api/v1/core'
 
 export const categoryApi = {
   // 获取分类树
-  async getCategories(): Promise<Category[]> {
-    const response = await fetch(`${API_BASE}/categories/`)
+  async getCategories(search?: string, page = 1, limit = 10): Promise<Category[]> {
+    const params = new URLSearchParams();
+    params.append('skip', String((page - 1) * limit));
+    params.append('limit', String(limit));
+    if (search) {
+      params.append('search', search);
+    }
+    const response = await fetch(`${API_BASE}/categories/?${params}`)
+    if (!response.ok) throw new Error('获取分类列表失败');
     return response.json()
   },
 

@@ -20,3 +20,26 @@ class DepartmentOut(Schema):
 
 # 解决 Schema 自引用问题
 DepartmentOut.update_forward_refs()
+
+
+# from ninja import Schema
+# from typing import Optional, List
+# from datetime import datetime
+
+
+class TeamIn(Schema):
+    """团队创建/更新输入结构"""
+    name: str
+    description: Optional[str] = None
+    department_id: Optional[int] = None  # 用于指定所属部门ID
+
+
+class TeamOut(Schema):
+    """团队输出结构"""
+    id: int
+    name: str
+    description: Optional[str]
+    department_id: Optional[int]
+    department_name: Optional[str]  # 部门名称
+    created_at: datetime
+    updated_at: datetime

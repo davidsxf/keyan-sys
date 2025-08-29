@@ -17,11 +17,42 @@ def create_category(request, data: CategoryIn):
     return {"id": category.id}
 
 @router.get("/categories/", response=List[CategoryOut])
-def list_categories(request):
-   
-   # 获取所有根节点（无父节点的分类）
-    root_categories = Category.objects.filter(parent__isnull=True)
-    return build_category_tree(root_categories)
+def list_categories(request, search: Optional[str] = None, 
+              skip: int = 0, limit: int = 100):
+
+    # 先获取所有分类
+    categories = Category.objects.all().order_by("-created_at")
+    
+    # 搜索功能
+    if search:
+        # 找到所有匹配的分类
+        matching_categories = categories.filter(
+            Q(name__icontains=search)
+        )
+        
+        # 获取这些匹配分类的根节点
+        root_nodes = set()
+        for category in matching_categories:
+            # 遍历到根节点
+            current = category
+            while current.parent:
+                current = current.parent
+            root_nodes.add(current.id)
+        
+        # 如果有匹配的分类，只返回这些根节点
+        if root_nodes:
+            categories = categories.filter(id__in=root_nodes)
+    else:
+        # 如果没有搜索条件，只返回根节点（parent为空）
+        categories = categories.filter(parent__isnull=True)
+    
+    # 分页：对根节点进行分页
+    paged_root_categories = categories[skip:skip + limit]
+    
+    # 使用build_category_tree构建完整的分类树
+    paged_tree = build_category_tree(paged_root_categories)
+    
+    return paged_tree
 
 
 def build_category_tree(queryset):
