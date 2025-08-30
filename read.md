@@ -12,6 +12,7 @@
  python manage.py createsuperuser
 
  django-admin startapp core
+ django-admin startapp projects
  django-admin startproject back
 
  python manage.py makemigrations core users

@@ -14,6 +14,8 @@ export interface DepartmentForm {
   parent_id?: number | null;
 }
 
+import { http } from '@/utils/http';
+
 import { Department, DepartmentForm } from '@/api/department';
 
 const API_BASE = '/api/v1/users';
@@ -21,49 +23,28 @@ const API_BASE = '/api/v1/users';
 export const departmentApi = {
   // 获取部门树
   async getDepartments(): Promise<Department[]> {
-    const response = await fetch(`${API_BASE}/departments/`);
-    if (!response.ok) throw new Error('获取部门列表失败');
-    return response.json();
+    const response = await http.get(`${API_BASE}/departments/`);
+    
+    return response;
   },
 
   // 创建部门
   async createDepartment(data: DepartmentForm): Promise<Department> {
-    const response = await fetch(`${API_BASE}/departments/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    const response = await http.post(`${API_BASE}/departments/`, { data: data });
     
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '创建部门失败');
-    }
-    
-    return response.json();
+    return response;
   },
 
   // 更新部门
   async updateDepartment(id: number, data: DepartmentForm): Promise<Department> {
-    const response = await fetch(`${API_BASE}/departments/${id}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    const response = await http.post(`${API_BASE}/departments/${id}/`, { data: data }, { method: 'PUT' });
     
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '更新部门失败');
-    }
-    
-    return response.json();
+    return response;
   },
 
   // 删除部门
   async deleteDepartment(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/departments/${id}/`, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) throw new Error('删除部门失败');
+    const response = await http.post(`${API_BASE}/departments/${id}/`, {}, { method: 'DELETE' });
+    return response;
   }
 };

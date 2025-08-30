@@ -27,36 +27,23 @@ export const categoryApi = {
     if (search) {
       params.append('search', search);
     }
-    const response = await fetch(`${API_BASE}/categories/?${params}`)
-    if (!response.ok) throw new Error('获取分类列表失败');
-    return response.json()
+  
+    const response = await http.get(`${API_BASE}/categories/?${params}`)
+    return response
   },
 
   // 创建分类
   async createCategory(data: CategoryForm): Promise<{ id: number }> {
-    const response = await fetch(`${API_BASE}/categories/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return await http.post(`${API_BASE}/categories/`, { data: data })
   },
 
   // 更新分类
   async updateCategory(id: number, data: CategoryForm): Promise<{ success: boolean }> {
-    const response = await fetch(`${API_BASE}/categories/${id}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    return response.json()
+    return await http.post(`${API_BASE}/categories/${id}/`, { data: data }, { method: 'PUT' })
   },
 
   // 删除分类
   async deleteCategory(id: number): Promise<{ success: boolean }> {
-    const response = await fetch(`${API_BASE}/categories/${id}/`, {
-      method: 'DELETE'
-    })
-    return response.json()
+    return await http.post(`${API_BASE}/categories/${id}/`, {}, { method: 'DELETE' })
   }
 }

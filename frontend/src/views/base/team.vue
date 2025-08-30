@@ -189,9 +189,9 @@ const loadTeams = async () => {
 
 const loadDepartments = async () => {
   try {
-    departments.value = await departmentApi.getDepartments()
+    departments.value = await departmentApi.getDepartmentOptions()
   } catch (error) {
-    ElMessage.error('获取部门列表失败')
+    ElMessage.error('获取部门选项失败')
   }
 }
 

@@ -20,7 +20,7 @@ export interface OrgForm {
 
 
 // import { Org, OrgForm, ApiResponse } from '@/types/org';
-
+import { http } from "@/utils/http";
 
 const API_BASE = '/api/v1/core';
 
@@ -33,62 +33,38 @@ export const orgApi = {
     params.append('skip', String((page - 1) * limit));
     params.append('limit', String(limit));
     
-    const response = await fetch(`${API_BASE}/orgs/?${params}`);
-    if (!response.ok) throw new Error('获取组织列表失败');
-    return response.json();
+    // const response = await fetch(`${API_BASE}/orgs/?${params}`);
+    const response = await http.get(`${API_BASE}/orgs/?${params}`)
+    // if (!response.ok) throw new Error('获取组织列表失败');
+    return response;
   },
 
 
   // 获取组织详情
   async getOrg(id: number): Promise<Org> {
-    const response = await fetch(`${API_BASE}/orgs/${id}/`);
-    if (!response.ok) throw new Error('获取组织详情失败');
-    return response.json();
+    const response = await http.get(`${API_BASE}/orgs/${id}/`);
+    // if (!response.ok) throw new Error('获取组织详情失败');
+    return response;
   },
 
 
   // 创建组织
   async createOrg(data: OrgForm): Promise<Org> {
-    const response = await fetch(`${API_BASE}/orgs/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    if (response.status === 400) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-    
-    if (!response.ok) throw new Error('创建组织失败');
-    return response.json();
+    const response = await http.post(`${API_BASE}/orgs/`, { data: data });
+    return response;
   },
 
 
   // 更新组织
   async updateOrg(id: number, data: OrgForm): Promise<Org> {
-    const response = await fetch(`${API_BASE}/orgs/${id}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    if (response.status === 400) {
-      const error = await response.json();
-      throw new Error(error.message);
-    }
-    
-    if (!response.ok) throw new Error('更新组织失败');
-    return response.json();
+    const response = await http.post(`${API_BASE}/orgs/${id}/`,{ data: data }, { method: 'PUT' })
+    return response;
   },
 
 
   // 删除组织
   async deleteOrg(id: number): Promise<void> {
-    const response = await fetch(`${API_BASE}/orgs/${id}/`, {
-      method: 'DELETE'
-    });
-    
-    if (!response.ok) throw new Error('删除组织失败');
+    const response = await http.post(`${API_BASE}/orgs/${id}/`, {}, { method: 'DELETE' })
+    return response;
   }
 };

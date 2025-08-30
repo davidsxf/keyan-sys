@@ -43,6 +43,15 @@ export default {
         showParent: true
       }
     },
+    {
+      path: "/base/staff",
+      name: "Staff",
+      component: () => import("@/views/base/staff.vue"),
+      meta: {
+        title: "员工",
+        showParent: true
+      }
+    },
 
     // {
     //   path: "/base/effort",

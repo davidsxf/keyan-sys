@@ -1,6 +1,7 @@
 from ninja import Schema
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime,date
+from enum import Enum
 
 class DepartmentIn(Schema):
     """部门创建/更新输入结构"""
@@ -22,9 +23,13 @@ class DepartmentOut(Schema):
 DepartmentOut.update_forward_refs()
 
 
-# from ninja import Schema
-# from typing import Optional, List
-# from datetime import datetime
+
+class DepartmentOption(Schema):
+    """部门选项"""
+    id: int
+    name: str
+
+
 
 
 class TeamIn(Schema):
@@ -43,3 +48,51 @@ class TeamOut(Schema):
     department_name: Optional[str]  # 部门名称
     created_at: datetime
     updated_at: datetime
+
+class TeamOption(Schema):
+    """团队选项"""
+    id: int
+    name: str
+
+## 员工
+
+class StaffStatus(str, Enum):
+    ON_DUTY = "在职"
+    OFF_DUTY = "离职"
+    RETIRE = "退休"
+
+class StaffIn(Schema):
+    """员工创建/更新输入结构"""
+    name: str
+    gender: Optional[str] = "男"
+    birthday: Optional[date] = None
+    email: Optional[str] = None
+    entry_date: Optional[date] = None
+    department_id: Optional[int] = None
+    team_id: Optional[int] = None
+    position: Optional[str] = None
+    is_team_leader: bool = False
+    status: StaffStatus = StaffStatus.ON_DUTY
+    phone: Optional[str] = None
+    remark: Optional[str] = None
+
+class StaffOut(Schema):
+    """员工输出结构"""
+    id: int
+    name: str
+    gender: Optional[str]
+    birthday: Optional[date]
+    email: Optional[str]
+    entry_date: Optional[date]
+    department_id: Optional[int]
+    department_name: Optional[str]
+    team_id: Optional[int]
+    team_name: Optional[str]
+    position: Optional[str]
+    is_team_leader: bool
+    status: str
+    phone: Optional[str]
+    remark: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
