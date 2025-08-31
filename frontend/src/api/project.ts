@@ -10,7 +10,9 @@ export interface Project {
   end_date?: string;
   status: string;
   status_display: string;
-  type_id?: number;
+  category_id?: number;
+  category_name?: string;
+  type?: string;
   type_name?: string;
   budget?: number;
   research_area?: string;
@@ -32,7 +34,8 @@ export interface ProjectForm {
   start_date?: string;
   end_date?: string;
   status: string;
-  type_id?: number;
+  category_id?: number;
+  type?: string;
   budget?: number;
   research_area?: string;
   source_id?: number;
@@ -45,7 +48,8 @@ export interface ProjectFilter {
   title?: string;
   number?: string;
   status?: string;
-  type_id?: number;
+  category_id?: number;
+  type?: string;
   leader_id?: number;
   undertake?: string;
 }
@@ -57,72 +61,75 @@ export interface Choice {
 }
 
 
+import { http } from '@/utils/http';
+const API_BASE = '/api/v1/projects';
 
-
-
-
-const API_BASE = '/api/v1/project';
-
-
-
-
+// 注意：根据后端路由结构，这里已经包含了 /projects 前缀
+// 所以后面的路由不要重复添加 /projects
 
 export const projectApi = {
   // 获取项目列表
   getProjects: async (params?: ProjectFilter): Promise<{ items: Project[]; total: number }> => {
-    const response = await fetch(`${API_BASE}/projects`, { params });
+    // 修复参数传递方式，GET参数直接作为第二个参数
+    const response = await http.get(API_BASE, params);
     return {
-      items: (await response.json()).items,
-      total: (await response.json()).total,
+      items: response.items || [],
+      total: response.total || 0,
     };
   },
 
-
   // 获取单个项目
   getProject: async (id: number): Promise<Project> => {
-    const response = await fetch(`${API_BASE}/projects/${id}`);
-    return await response.json();   
+    // 统一使用 http 工具
+    return await http.get(`${API_BASE}/${id}`);
   },
-
 
   // 创建项目
   createProject: async (data: ProjectForm): Promise<Project> => {
-    const response = await fetch(`${API_BASE}/projects`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    return await response.json();
+    // 统一使用 http 工具
+    return await http.post(API_BASE, { data });
   },
-
 
   // 更新项目
   updateProject: async (id: number, data: ProjectForm): Promise<Project> => {
-    const response = await fetch(`${API_BASE}/projects/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    return await response.json();
+    // 统一使用 http 工具
+    return await http.post(`${API_BASE}/${id}`, { data }, { method: 'PUT' });
   },
-
 
   // 删除项目
   deleteProject: async (id: number): Promise<void> => {
-    await fetch(`${API_BASE}/projects/${id}`, {
-      method: 'DELETE',
-    });
+    // 修复 URL 路径，移除重复的 /projects
+    await http.post(`${API_BASE}/${id}`, {}, { method: 'DELETE' });
   },
-
 
   // 获取状态选项
   getStatusChoices: async (): Promise<Choice[]> => {
-    const response = await fetch(`${API_BASE}/projects/status/choices`);
-    return await response.json();
+    // 统一使用 http 工具，修复 URL 路径
+    return await http.get(`${API_BASE}/status/choices`);
   },
-
 
   // 获取承担方式选项
   getUndertakeChoices: async (): Promise<Choice[]> => {
-    const response = await fetch(`${API_BASE}/projects/undertake/choices`);
-    return await response.json();
+    // 统一使用 http 工具，修复 URL 路径
+    return await http.get(`${API_BASE}/undertake/choices`);
   },
+
+  // 获取类别选项
+  // getCategoryChoices: async (): Promise<Choice[]> => {
+  //   // 统一使用 http 工具，修复 URL 路径
+  //   return await http.get(`${API_BASE}/type/choices`);
+  // },
+
+  // 获取类型选项
+  getTypeChoices: async (): Promise<Choice[]> => {
+    // 统一使用 http 工具，修复 URL 路径
+    return await http.get(`${API_BASE}/type/choices`);
+  },
+
+  // 获取组织选项
+  // getOrgChoices: async (): Promise<Choice[]> => {
+  //   // 统一使用 http 工具，修复 URL 路径
+  //   return await http.get(`${API_BASE}/source/choices`);
+  // },
+
 };

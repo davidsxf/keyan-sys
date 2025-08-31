@@ -12,7 +12,8 @@ class ProjectIn(Schema):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     status: str
-    type_id: Optional[int] = None
+    category_id: Optional[int] = None
+    type: Optional[str] = None
     budget: Optional[float] = None
     research_area: Optional[str] = None
     source_id: Optional[int] = None
@@ -31,7 +32,9 @@ class ProjectOut(Schema):
     end_date: Optional[date] = None
     status: str
     status_display: str  # 状态显示值
-    type_id: Optional[int] = None
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None  # 类别名称
+    type: Optional[str] = None  # 类型
     type_name: Optional[str] = None  # 类型名称
     budget: Optional[float] = None
     research_area: Optional[str] = None
@@ -48,6 +51,7 @@ class ProjectFilter(Schema):
     title: Optional[str] = None
     number: Optional[str] = None
     status: Optional[str] = None
-    type_id: Optional[int] = None
+    category_id: Optional[int] = None
+    type: Optional[str] = None
     leader_id: Optional[int] = None
     undertake: Optional[str] = None

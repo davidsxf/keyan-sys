@@ -77,14 +77,21 @@ class Project(models.Model):
         default=ProjectStatus.APPROVED,
         verbose_name=_("项目状态")
     )
-    type = models.ForeignKey(
+    category = models.ForeignKey(
         Category,
         related_name='category_projects',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
+        verbose_name=_("项目类别")
+    )
+    type = models.CharField(
+        max_length=20,
+        choices=ProjectType.choices,
+        default=ProjectType.OTHER,
         verbose_name=_("项目类型")
     )
+
     budget = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
@@ -133,4 +140,18 @@ class Project(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.number})"
+    
+    @property
+    def status_display(self):
+        """Return the display name for the project status"""
+        return str(dict(ProjectStatus.choices).get(self.status, self.status))
+        
+    @property
+    def undertake_display(self):
+        """Return the display name for the project undertake type"""
+        return str(dict(UndertakeType.choices).get(self.undertake, self.undertake))
 
+    @property
+    def type_display(self):
+        """Return the display name for the project type"""
+        return str(dict(ProjectType.choices).get(self.type, self.type))

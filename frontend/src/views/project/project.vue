@@ -123,13 +123,26 @@ const pagination = ref({
 const loadProjects = async () => {
   try {
     loading.value = true;
-    const params = {
-      ...filterForm.value,
-      page: pagination.value.current,
-      size: pagination.value.size,
-    };
+    // 创建只包含非空属性的参数对象
+    const params: any = {};
+    
+    // 只添加非空的filterForm属性
+    if (filterForm.value.title) {
+      params.title = filterForm.value.title;
+    }
+    if (filterForm.value.number) {
+      params.number = filterForm.value.number;
+    }
+    if (filterForm.value.status) {
+      params.status = filterForm.value.status;
+    }
+    
+    // 添加分页参数
+    params.page = pagination.value.current;
+    params.size = pagination.value.size;
     
     const response = await projectApi.getProjects(params);
+    console.log('response', response);
     projects.value = response.items;
     pagination.value.total = response.total;
   } catch (error) {

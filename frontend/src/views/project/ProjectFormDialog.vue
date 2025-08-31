@@ -58,22 +58,35 @@
       </el-form-item>
 
 
-      <el-form-item label="项目类型">
+      <el-form-item label="项目类别">
         <el-select
-          v-model="formData.type_id"
-          placeholder="请选择项目类型"
+          v-model="formData.category_id"
+          placeholder="请选择项目类别"
           clearable
         >
-          <!-- 这里需要实现项目类型的下拉选项 -->
           <el-option
-            v-for="type in typeOptions"
-            :key="type.id"
-            :label="type.name"
-            :value="type.id"
+            v-for="category in categoryOptions"
+            :key="category.id"
+            :label="category.name"
+            :value="category.id"
           />
         </el-select>
       </el-form-item>
 
+      <el-form-item label="项目类型">
+        <el-select
+          v-model="formData.type"
+          placeholder="请选择项目类型"
+          clearable
+        >
+          <el-option
+            v-for="type in typeOptions"
+            :key="type.value"
+            :label="type.label"
+            :value="type.value"
+          />
+        </el-select>
+      </el-form-item>
 
       <el-form-item label="预算(万元)">
         <el-input-number
@@ -171,8 +184,15 @@
 <script setup lang="ts">
 import { ref, watch, computed, reactive } from 'vue';
 import { ElMessage, FormInstance, FormRules } from 'element-plus';
-import { Project, ProjectForm, Choice } from '@/api/project';
+import { Project, ProjectForm, Choice } from '@/api/project'; // 导入新接口
+import { categoryApi } from '@/api/category';
+import { orgApi } from '@/api/org';
+
 import { projectApi } from '@/api/project';
+import { staffApi } from '@/api/staff';
+import type { Staff } from '@/api/staff';
+import type { Category } from '@/api/category';
+import type { Org } from '@/api/org';
 
 
 interface Props {
@@ -180,6 +200,7 @@ interface Props {
   project?: Project | null;
   statusChoices: Choice[];
   undertakeChoices: Choice[];
+  typeOptions: Choice[];
 }
 
 
@@ -191,10 +212,129 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['update:modelValue', 'success']);
 
-
 const visible = ref(props.modelValue);
 const formRef = ref<FormInstance>();
 const loading = ref(false);
+
+// 添加对props.modelValue变化的监听
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val;
+  }
+);
+
+// 加载下拉选项数据
+const leaderOptions = ref<{ id: number; name: string }[]>([]);
+const categoryOptions = ref<{ id: number; name: string }[]>([]);
+const typeOptions = ref<Choice[]>([]);
+
+const sourceOptions = ref<{ id: number; name: string }[]>([]);
+
+// 加载员工数据
+const loadStaffOptions = async () => {
+  try {
+    const staffs = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 1000);
+    leaderOptions.value = staffs.map((staff: Staff) => ({ id: staff.id, name: staff.name }));
+  } catch (error) {
+    console.error('加载员工数据失败:', error);
+  }
+};
+
+// 加载类别数据
+const loadCategoryOptions = async () => {
+  try {
+    // 修改方法名，与project.ts中的定义保持一致
+    const categories = await categoryApi.getCategories();
+    
+    // 创建一个空数组来存储所有类别（包括子类别）
+    const allCategories: { id: number; name: string }[] = [];
+    
+    // 递归函数，用于处理分类树
+    const processCategories = (categories: Category[], level = 0) => {
+      for (const category of categories) {
+        // 添加前缀来表示层级关系
+        const prefix = level > 0 ? '├─ '.repeat(level) : '';
+        allCategories.push({
+          id: category.id,
+          name: `${prefix}${category.name}`
+        });
+        
+        // 如果有子类别，递归处理
+        if (category.children && category.children.length > 0) {
+          processCategories(category.children, level + 1);
+        }
+      }
+    };
+    
+    // 处理根类别
+    processCategories(categories);
+    
+    categoryOptions.value = allCategories;
+  } catch (error) {
+    console.error('加载类别数据失败:', error);
+  }
+};
+
+// 加载类型数据
+const loadTypeOptions = async () => {
+  try {
+    // 修改方法名，与project.ts中的定义保持一致
+    const types = await projectApi.getTypeChoices();
+    typeOptions.value = types;
+  } catch (error) {
+    console.error('加载类型数据失败:', error);
+  }
+};
+
+// 加载组织数据
+const loadOrgOptions = async () => {
+  try {
+    // 修改方法名，与project.ts中的定义保持一致
+    const orgs = await orgApi.getOrgs()
+    console.log('orgs', orgs);
+    sourceOptions.value = orgs.map((org: Org) => ({ id: org.id, name: org.name }));
+  } catch (error) {
+    console.error('加载组织数据失败:', error);
+  }
+};
+
+// 确保watch监听器的完整实现
+watch(visible, (val) => {
+  emit('update:modelValue', val);
+  if (val) {
+    // 加载所有下拉选项数据
+    loadStaffOptions();
+    loadCategoryOptions();
+    loadTypeOptions();
+    loadOrgOptions();
+    
+    if (props.project) {
+      // 编辑模式，填充表单数据
+      Object.assign(formData, {
+        title: props.project.title,
+        number: props.project.number,
+        funding_number: props.project.funding_number || '',
+        leader_id: props.project.leader_id || undefined,
+        start_date: props.project.start_date || '',
+        end_date: props.project.end_date || '',
+        status: props.project.status,
+        category_id: props.project.category_id || undefined,
+        type: props.project.type || undefined,
+        budget: props.project.budget || undefined,
+        research_area: props.project.research_area || '',
+        source_id: props.project.source_id || undefined,
+        undertake: props.project.undertake,
+        remark: props.project.remark || '',
+      });
+    } else {
+      // 新增模式，重置表单
+      if (formRef.value) {
+        formRef.value.resetFields();
+      }
+    }
+  }
+});
 
 
 // 表单数据
@@ -206,7 +346,8 @@ const formData = reactive<ProjectForm>({
   start_date: '',
   end_date: '',
   status: 'APPROVED',
-  type_id: undefined,
+  category_id: undefined,
+  type: undefined,
   budget: undefined,
   research_area: '',
   source_id: undefined,
@@ -220,6 +361,8 @@ const formRules: FormRules = {
   title: [{ required: true, message: '请输入项目名称', trigger: 'blur' }],
   number: [{ required: true, message: '请输入项目编号', trigger: 'blur' }],
   status: [{ required: true, message: '请选择项目状态', trigger: 'change' }],
+  category_id: [{ required: true, message: '请选择项目类别', trigger: 'change' }],
+  type: [{ required: true, message: '请选择项目类型', trigger: 'change' }],
   undertake: [{ required: true, message: '请选择承担方式', trigger: 'change' }],
 };
 
@@ -230,48 +373,6 @@ const formTitle = computed(() => {
 });
 
 
-// 加载下拉选项数据（这里需要根据实际情况实现）
-const leaderOptions = ref<any[]>([]);
-const typeOptions = ref<any[]>([]);
-const sourceOptions = ref<any[]>([]);
-
-
-// 监听visible变化
-watch(
-  () => props.modelValue,
-  (val) => {
-    visible.value = val;
-  }
-);
-
-
-// 监听visible变化并更新父组件
-watch(visible, (val) => {
-  emit('update:modelValue', val);
-  if (val && props.project) {
-    // 编辑模式，填充表单数据
-    Object.assign(formData, {
-      title: props.project.title,
-      number: props.project.number,
-      funding_number: props.project.funding_number || '',
-      leader_id: props.project.leader_id || undefined,
-      start_date: props.project.start_date || '',
-      end_date: props.project.end_date || '',
-      status: props.project.status,
-      type_id: props.project.type_id || undefined,
-      budget: props.project.budget || undefined,
-      research_area: props.project.research_area || '',
-      source_id: props.project.source_id || undefined,
-      undertake: props.project.undertake,
-      remark: props.project.remark || '',
-    });
-  } else if (val) {
-    // 新增模式，重置表单
-    if (formRef.value) {
-      formRef.value.resetFields();
-    }
-  }
-});
 
 
 // 提交表单
