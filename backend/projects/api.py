@@ -42,6 +42,7 @@ def list_projects(request, filters: ProjectFilter = None):
         if filters.undertake:
             queryset = queryset.filter(undertake=filters.undertake)
     
+    # 直接返回queryset，让Ninja的序列化器处理ProjectOut中的自定义字段
     return queryset
 
 @router.get("/{project_id}", response=ProjectOut)  # 移除重复的 '/projects'

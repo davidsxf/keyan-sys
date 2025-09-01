@@ -155,3 +155,20 @@ class Project(models.Model):
     def type_display(self):
         """Return the display name for the project type"""
         return str(dict(ProjectType.choices).get(self.type, self.type))
+
+
+    #自定义 leader_name 字段
+    @property
+    def leader_name(self):
+        return self.leader.name if self.leader else None
+    
+    #自定义 category_name 字段
+    @property
+    def category_name(self):
+        return self.category.name if self.category else None
+    
+    #自定义 source_name 字段
+    @property
+    def source_name(self):
+        return self.source.name if self.source else None
+
