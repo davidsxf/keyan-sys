@@ -20,10 +20,11 @@ class CustomPagination(PageNumberPagination):
 
 @router.get("", response=List[ProjectOut])  # 移除重复的 '/projects'
 @paginate(CustomPagination)
-def list_projects(request, filters: ProjectFilter = None):
+def list_projects(request, filters: ProjectFilter = Query(None)):
     """获取项目列表"""
     # 修复select_related，将'type'改为'category'
     queryset = Project.objects.all().select_related('leader', 'category', 'source')
+
     
     # 如果提供了筛选条件，则应用它们
     if filters:
@@ -41,6 +42,8 @@ def list_projects(request, filters: ProjectFilter = None):
             queryset = queryset.filter(leader_id=filters.leader_id)
         if filters.undertake:
             queryset = queryset.filter(undertake=filters.undertake)
+        if filters.source:
+            queryset = queryset.filter(source__name__icontains=filters.source)
     
     # 直接返回queryset，让Ninja的序列化器处理ProjectOut中的自定义字段
     return queryset

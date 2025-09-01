@@ -18,10 +18,38 @@
         <el-form-item label="项目编号">
           <el-input v-model="filterForm.number" placeholder="请输入项目编号" clearable />
         </el-form-item>
-        <el-form-item label="项目状态">
-          <el-select v-model="filterForm.status" placeholder="请选择状态" clearable>
+        <!-- 项目负责人 -->
+        <el-form-item label="项目负责人">
+          <el-select v-model="filterForm.leader_id" placeholder="请选择项目负责人" clearable>
             <el-option
-              v-for="item in statusChoices"
+              v-for="item in leaderChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+       
+        <!-- 项目类别 -->
+        <el-form-item label="项目类别">
+          <el-select v-model="filterForm.category_id" placeholder="请选择类别" clearable style="width: 100px">
+            <el-option
+              v-for="item in categoryChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <!-- 项目来源 -->
+        <el-form-item label="项目来源">
+          <el-input v-model="filterForm.source" placeholder="请输入来源" clearable />
+        </el-form-item>
+        <!-- 项目承担方式 -->
+        <el-form-item label="项目承担方式">
+          <el-select v-model="filterForm.undertake" placeholder="请选择承担方式" clearable style="width: 100px">
+            <el-option
+              v-for="item in undertakeChoices"
               :key="item.value"
               :label="item.label"
               :value="item.value"
@@ -108,8 +136,13 @@ const undertakeChoices = ref<any[]>([]);
 const filterForm = ref<ProjectFilter>({
   title: '',
   number: '',
+  category_id: null,
+  source: null,
+  undertake: '',
   status: '',
 });
+const categoryChoices = ref<any[]>([]);
+const leaderChoices = ref<any[]>([]);
 
 
 const pagination = ref({
@@ -136,11 +169,20 @@ const loadProjects = async () => {
     if (filterForm.value.status) {
       params.status = filterForm.value.status;
     }
+    if (filterForm.value.category_id) {
+      params.category_id = filterForm.value.category_id;
+    }
+    if (filterForm.value.source) {
+      params.source = filterForm.value.source;
+    }
+    if (filterForm.value.undertake) {
+      params.undertake = filterForm.value.undertake;
+    }
     
     // 添加分页参数
     params.page = pagination.value.current;
     params.size = pagination.value.size;
-    
+    console.log('params', params);
     const response = await projectApi.getProjects(params);
     console.log('response', response);
     projects.value = response.items;

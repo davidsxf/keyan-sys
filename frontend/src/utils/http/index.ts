@@ -187,7 +187,9 @@ class PureHttp {
     params?: AxiosRequestConfig<P>,
     config?: PureHttpRequestConfig
   ): Promise<T> {
-    return this.request<T>("get", url, params, config);
+    // 修复：确保GET请求参数被正确放入params属性
+    const requestParams = params && typeof params === 'object' && !params.data ? params : { params };  //这句ai加的
+    return this.request<T>("get", url, requestParams, config);
   }
 }
 

@@ -52,6 +52,7 @@ export interface ProjectFilter {
   type?: string;
   leader_id?: number;
   undertake?: string;
+  source?: number;
 }
 
 
@@ -69,13 +70,12 @@ const API_BASE = '/api/v1/projects';
 
 export const projectApi = {
   // 获取项目列表
-  getProjects: async (params?: ProjectFilter): Promise<{ items: Project[]; total: number }> => {
+  getProjects: async (params?: ProjectFilter): Promise<{ items: Project[]; total: number; }> => {
     // 修复参数传递方式，GET参数直接作为第二个参数
-    const response = await http.get(API_BASE, params);
-    return {
-      items: response.items || [],
-      total: response.total || 0,
-    };
+    // console.log('paramsf', params);
+    const response = await http.get(API_BASE,{params});
+
+    return response;
   },
 
   // 获取单个项目

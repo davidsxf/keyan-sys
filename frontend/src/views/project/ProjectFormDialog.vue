@@ -200,7 +200,7 @@ interface Props {
   project?: Project | null;
   statusChoices: Choice[];
   undertakeChoices: Choice[];
-  typeOptions: Choice[];
+  typeOptions?: Choice[]; // 修改为可选属性
 }
 
 
