@@ -56,6 +56,35 @@
             />
           </el-select>
         </el-form-item>
+        <!-- 项目状态 -->
+        <el-form-item label="项目状态">
+          <el-select v-model="filterForm.status" placeholder="请选择状态" clearable style="width: 100px">
+            <el-option
+              v-for="item in statusChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+<!-- 开始日期 -->
+<el-form-item label="开始日期">
+  <el-date-picker
+    v-model="filterForm.start_date"
+    type="date"
+    placeholder="请选择开始日期"
+    clearable
+  />
+</el-form-item>
+<!-- 结束日期 -->
+<el-form-item label="结束日期">
+  <el-date-picker
+    v-model="filterForm.end_date"
+    type="date"
+    placeholder="请选择结束日期"
+    clearable
+  />
+</el-form-item>
         <el-form-item>
           <el-button type="primary" @click="loadProjects">搜索</el-button>
           <el-button @click="resetFilter">重置</el-button>
@@ -140,6 +169,9 @@ const filterForm = ref<ProjectFilter>({
   source: null,
   undertake: '',
   status: '',
+  leader_id: null, // 添加缺失的字段
+  start_date: null, // 添加缺失的字段
+  end_date: null, // 添加缺失的字段
 });
 const categoryChoices = ref<any[]>([]);
 const leaderChoices = ref<any[]>([]);
@@ -178,13 +210,22 @@ const loadProjects = async () => {
     if (filterForm.value.undertake) {
       params.undertake = filterForm.value.undertake;
     }
+    // 添加缺失的字段处理
+    if (filterForm.value.leader_id) {
+      params.leader_id = filterForm.value.leader_id;
+    }
+    if (filterForm.value.start_date) {
+      params.start_date = filterForm.value.start_date;
+    }
+    if (filterForm.value.end_date) {
+      params.end_date = filterForm.value.end_date;
+    }
     
     // 添加分页参数
     params.page = pagination.value.current;
     params.size = pagination.value.size;
-    console.log('params', params);
+    
     const response = await projectApi.getProjects(params);
-    console.log('response', response);
     projects.value = response.items;
     pagination.value.total = response.total;
   } catch (error) {
@@ -198,12 +239,17 @@ const loadProjects = async () => {
 // 加载选项数据
 const loadChoices = async () => {
   try {
-    const [statusRes, undertakeRes] = await Promise.all([
+    const [statusRes, undertakeRes, typeRes, leaderRes] = await Promise.all([
       projectApi.getStatusChoices(),
       projectApi.getUndertakeChoices(),
+      projectApi.getCategoryChoices(),
+      projectApi.getTypeChoices(),
+      projectApi.getLeaderChoices()
     ]);
     statusChoices.value = statusRes;
     undertakeChoices.value = undertakeRes;
+    categoryChoices.value = typeRes; // 使用类型选项作为类别选项
+    leaderChoices.value = leaderRes;
   } catch (error) {
     ElMessage.error('获取选项数据失败');
   }

@@ -221,6 +221,13 @@ def create_staff(request, data: StaffIn):
     
     return prepare_staff_response(staff)
 
+
+@router.get("/staffs/choices/")
+def get_staff_choices(request):
+    """获取员工选项列表（用于下拉选择）"""
+    staffs = Staff.objects.all().order_by('name')
+    return [{"value": staff.id, "label": staff.name} for staff in staffs]
+
 @router.get("/staffs/", response=List[StaffOut])
 def list_staffs(request, 
                 search: Optional[str] = None,
@@ -259,11 +266,15 @@ def list_staffs(request,
     # 准备响应数据
     return [prepare_staff_response(staff) for staff in staffs]
 
+
+
 @router.get("/staffs/{staff_id}/", response=StaffOut)
 def get_staff(request, staff_id: int):
     """根据ID获取员工详情"""
     staff = get_object_or_404(Staff, id=staff_id)
     return prepare_staff_response(staff)
+
+
 
 @router.put("/staffs/{staff_id}/", response=StaffOut)
 def update_staff(request, staff_id: int, data: StaffIn):

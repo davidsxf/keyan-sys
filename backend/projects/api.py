@@ -5,7 +5,7 @@ from ninja.pagination import paginate, PageNumberPagination
 from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from .models import Project, ProjectStatus, UndertakeType, ProjectType
+from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff
 from .schemas import ProjectIn, ProjectOut, ProjectFilter
 
 
@@ -109,4 +109,15 @@ def get_undertake_choices(request):
 def get_type_choices(request):
     """获取项目类型选项"""
     return [{"value": choice[0], "label": choice[1]} for choice in ProjectType.choices]
+
+
+# category 类别
+@router.get("/category/choices")  # 移除重复的 '/projects'
+def get_category_choices(request):
+    """获取项目类别选项"""
+    # 从数据库查询所有类别
+    categories = Category.objects.all().order_by('sort_order', 'name')
+    # 返回格式化的选项列表
+    return [{"value": category.id, "label": category.name} for category in categories]
+
 

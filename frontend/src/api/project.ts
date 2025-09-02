@@ -52,7 +52,9 @@ export interface ProjectFilter {
   type?: string;
   leader_id?: number;
   undertake?: string;
-  source?: number;
+  source?: string; // 从 number 改为 string
+  start_date?: string; // 添加缺失的字段
+  end_date?: string; // 添加缺失的字段
 }
 
 
@@ -115,11 +117,16 @@ export const projectApi = {
   },
 
   // 获取类别选项
-  // getCategoryChoices: async (): Promise<Choice[]> => {
-  //   // 统一使用 http 工具，修复 URL 路径
-  //   return await http.get(`${API_BASE}/type/choices`);
-  // },
-
+  getCategoryChoices: async (): Promise<Choice[]> => {
+    // 注意：后端实际提供的是 type/choices 接口
+    return await http.get(`${API_BASE}/category/choices`);
+  },
+  
+  // 获取负责人选项
+  getLeaderChoices: async (): Promise<Choice[]> => {
+    // 调用新的 API 接口获取负责人列表
+    return await http.get('/api/v1/users/staffs/choices');
+  },
   // 获取类型选项
   getTypeChoices: async (): Promise<Choice[]> => {
     // 统一使用 http 工具，修复 URL 路径
