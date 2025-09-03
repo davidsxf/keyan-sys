@@ -176,46 +176,80 @@ class Project(models.Model):
 
 
 ### 项目预算
-# from django.db import models
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 
-from enum import Enum
 
-class ProjectBudgetType(Enum):
-    INCOME = "收入"
-    EXPENSE = "支出"
-    COORDINATION = "统筹"
-    OTHER = "其他"
+# 修复前
+# 将普通Enum改为Django的TextChoices，与项目中其他枚举类型保持一致
+# def ProjectBudgetType(models.TextChoices):
+#     INCOME = "INCOME", _("收入")
+#     EXPENSE = "EXPENSE", _("支出")
+#     COORDINATION = "COORDINATION", _("统筹")
+#     OTHER = "OTHER", _("其他")
 
-    @classmethod
-    def choices(cls):
-        return [(key.value, key.name) for key in cls]
-
+# 修复后
+class ProjectBudgetType(models.TextChoices):
+    INCOME = "INCOME", _("收入")
+    EXPENSE = "EXPENSE", _("支出")
+    COORDINATION = "COORDINATION", _("统筹")
+    OTHER = "OTHER", _("其他")
 
 class ProjectBudget(models.Model):
-    id = models.IntegerField(primary_key=True)
+    # 移除手动定义的id字段，Django会自动创建自增主键
     project = models.ForeignKey(
         Project, 
         related_name='budgets',
-        on_delete=models.CASCADE  # Django需要指定外键删除行为，这里使用CASCADE作为默认
+        on_delete=models.CASCADE,  # 明确指定级联删除行为
+        verbose_name=_('所属项目')  # 添加verbose_name提高可读性
     )
-    name = models.CharField(max_length=255)
+    name = models.CharField(
+        max_length=255, 
+        verbose_name=_('预算名称'),
+        help_text=_('预算项的具体名称')
+    )
     amount = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        null=True,
-        help_text="金额(万元)"  # Django中使用help_text替代description
+        null=True, 
+        blank=True,  # 允许表单提交空值
+        verbose_name=_('金额(万元)'),
+        help_text=_('预算金额，单位为万元')
     )
-    year = models.IntegerField(null=True)
+    year = models.IntegerField(
+        null=True, 
+        blank=True,
+        verbose_name=_('年度'),
+        help_text=_('预算所属的年份')
+    )
     type = models.CharField(
         max_length=20,
-        choices=ProjectBudgetType.choices(),
-        default=ProjectBudgetType.INCOME.value
+        choices=ProjectBudgetType.choices,  # 直接使用choices属性
+        default=ProjectBudgetType.INCOME,  # 使用枚举成员而非.value
+        verbose_name=_('类型'),
+        help_text=_('预算类型：收入、支出、统筹或其他')
     )
-    remark = models.TextField(null=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    remark = models.TextField(
+        null=True, 
+        blank=True,
+        verbose_name=_('备注'),
+        help_text=_('关于预算项的补充说明')
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_('更新时间')
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('创建时间')
+    )
 
     class Meta:
-        # 可以在这里添加元数据，如数据库表名等
+        verbose_name = _('项目预算')
+        verbose_name_plural = _('项目预算')
+        ordering = ['-created_at']  # 默认按创建时间降序排列
+        # 可选：添加数据库表名
         # db_table = 'project_budget'
-        pass
+
+    def __str__(self):
+        return f'{self.project.title} - {self.name} ({self.get_type_display()})'

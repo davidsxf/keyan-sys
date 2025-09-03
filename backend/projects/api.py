@@ -129,3 +129,91 @@ def get_category_choices(request):
     return [{"value": category.id, "label": category.name} for category in categories]
 
 
+#项目预算
+
+from .schemas import ProjectBudgetIn, ProjectBudgetOut, ProjectBudgetFilter
+from .models import ProjectBudget,ProjectBudgetType
+
+# 项目预算相关API
+@router.get("/budget/budgets", response=List[ProjectBudgetOut])
+@paginate(CustomPagination)
+def list_project_budgets(request, filters: ProjectBudgetFilter = Query(None)):
+    """获取项目预算列表"""
+    # 使用select_related预加载项目信息
+    queryset = ProjectBudget.objects.all().select_related('project')
+    
+    # 如果提供了筛选条件，则应用它们
+    if filters:
+        if filters.project_id:
+            queryset = queryset.filter(project_id=filters.project_id)
+        if filters.name:
+            queryset = queryset.filter(name__icontains=filters.name)
+        if filters.type:
+            queryset = queryset.filter(type=filters.type)
+        if filters.year:
+            queryset = queryset.filter(year=filters.year)
+        if filters.start_date:
+            queryset = queryset.filter(created_at__gte=filters.start_date)
+        if filters.end_date:
+            queryset = queryset.filter(created_at__lte=filters.end_date)
+    
+    return queryset
+
+
+@router.get("/budget/budgets/{budget_id}", response=ProjectBudgetOut)
+def get_project_budget(request, budget_id: int):
+    """获取单个项目预算详情"""
+    budget = get_object_or_404(ProjectBudget.objects.select_related('project'), id=budget_id)
+    return budget
+
+
+@router.post("/budget/budgets", response=ProjectBudgetOut)
+def create_project_budget(request, data: ProjectBudgetIn):
+    """创建新项目预算"""
+    budget_data = data.dict()
+    
+    # 从数据中提取project_id，用于查找Project对象
+    project_id = budget_data.pop('project_id')
+    project = get_object_or_404(Project, id=project_id)
+    
+    # 创建预算记录
+    budget = ProjectBudget.objects.create(project=project, **budget_data)
+    return budget
+
+
+@router.put("/budget/budgets/{budget_id}", response=ProjectBudgetOut)
+def update_project_budget(request, budget_id: int, data: ProjectBudgetIn):
+    """更新项目预算信息"""
+    budget = get_object_or_404(ProjectBudget, id=budget_id)
+    update_data = data.dict(exclude_unset=True)
+    
+    # 处理project_id字段
+    if 'project_id' in update_data:
+        project_id = update_data.pop('project_id')
+        project = get_object_or_404(Project, id=project_id)
+        budget.project = project
+    
+    # 更新其他字段
+    for attr, value in update_data.items():
+        setattr(budget, attr, value)
+    
+    budget.save()
+    return budget
+
+
+@router.delete("/budget/budgets/{budget_id}")
+def delete_project_budget(request, budget_id: int):
+    """删除项目预算"""
+    budget = get_object_or_404(ProjectBudget, id=budget_id)
+    budget.delete()
+    return {"success": True, "message": "预算删除成功"}
+
+
+@router.get("/budget/types")
+def get_budget_type_choices(request):
+    """获取预算类型选项"""
+    return [{"value": choice[0], "label": choice[1]} for choice in ProjectBudgetType.choices]
+
+
+# 将router添加到api
+# api.add_router("/projects", router)

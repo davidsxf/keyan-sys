@@ -60,3 +60,38 @@ class ProjectFilter(Schema):
     # 添加缺失的日期字段
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+
+
+
+#预算
+class ProjectBudgetIn(Schema):
+    project_id: int
+    name: str
+    amount: Optional[float] = None
+    year: Optional[int] = None
+    type: str
+    remark: Optional[str] = None
+
+
+class ProjectBudgetOut(Schema):
+    id: int
+    project_id: int
+    project_title: Optional[str] = None  # 项目标题
+    name: str
+    amount: Optional[float] = None
+    year: Optional[int] = None
+    type: str
+    type_display: Optional[str] = None  # 类型显示值
+    remark: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectBudgetFilter(Schema):
+    project_id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[str] = None
+    year: Optional[int] = None
+    # 日期范围筛选
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None

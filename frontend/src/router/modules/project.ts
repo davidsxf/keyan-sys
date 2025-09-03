@@ -16,6 +16,15 @@ export default {
         showParent: true
       }
     },
+    {
+      path: "/project/budget",
+      name: "Budget",
+      component: () => import("@/views/project/budget.vue"),
+      meta: {
+        title: "项目预算",
+        showParent: true
+      }
+    },
     // {
     //   path: "/base/org",
     //   name: "Org",
