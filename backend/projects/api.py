@@ -25,6 +25,9 @@ def list_projects(request, filters: ProjectFilter = Query(None)):
     # 修复select_related，将'type'改为'category'
     queryset = Project.objects.all().select_related('leader', 'category', 'source')
 
+    # 打印查询结果
+    # for project in queryset:
+    #     print(project.__dict__)
     
     # 如果提供了筛选条件，则应用它们
     if filters:
@@ -44,14 +47,19 @@ def list_projects(request, filters: ProjectFilter = Query(None)):
             queryset = queryset.filter(undertake=filters.undertake)
         if filters.source:
             queryset = queryset.filter(source__name__icontains=filters.source)
+        if filters.start_date:
+            queryset = queryset.filter(start_date__gte=filters.start_date)
+        if filters.end_date:
+            queryset = queryset.filter(end_date__lte=filters.end_date)
     
     # 直接返回queryset，让Ninja的序列化器处理ProjectOut中的自定义字段
     return queryset
 
+# 恢复get_project接口中的预加载代码，以便获取关联对象数据
 @router.get("/{project_id}", response=ProjectOut)  # 移除重复的 '/projects'
 def get_project(request, project_id: int):
     """获取单个项目详情"""
-    project = get_object_or_404(Project, id=project_id)
+    project = get_object_or_404(Project.objects.select_related('leader', 'category', 'source'), id=project_id)
     return project
 
 

@@ -152,7 +152,8 @@ class Project(models.Model):
         return str(dict(UndertakeType.choices).get(self.undertake, self.undertake))
 
     @property
-    def type_display(self):
+    # 修改或添加type_name属性，确保与前端和schemas.py中的字段名一致
+    def type_name(self):
         """Return the display name for the project type"""
         return str(dict(ProjectType.choices).get(self.type, self.type))
 
@@ -172,3 +173,49 @@ class Project(models.Model):
     def source_name(self):
         return self.source.name if self.source else None
 
+
+
+### 项目预算
+# from django.db import models
+
+from enum import Enum
+
+class ProjectBudgetType(Enum):
+    INCOME = "收入"
+    EXPENSE = "支出"
+    COORDINATION = "统筹"
+    OTHER = "其他"
+
+    @classmethod
+    def choices(cls):
+        return [(key.value, key.name) for key in cls]
+
+
+class ProjectBudget(models.Model):
+    id = models.IntegerField(primary_key=True)
+    project = models.ForeignKey(
+        Project, 
+        related_name='budgets',
+        on_delete=models.CASCADE  # Django需要指定外键删除行为，这里使用CASCADE作为默认
+    )
+    name = models.CharField(max_length=255)
+    amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True,
+        help_text="金额(万元)"  # Django中使用help_text替代description
+    )
+    year = models.IntegerField(null=True)
+    type = models.CharField(
+        max_length=20,
+        choices=ProjectBudgetType.choices(),
+        default=ProjectBudgetType.INCOME.value
+    )
+    remark = models.TextField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # 可以在这里添加元数据，如数据库表名等
+        # db_table = 'project_budget'
+        pass

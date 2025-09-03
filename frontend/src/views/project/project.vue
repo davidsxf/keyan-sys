@@ -95,7 +95,13 @@
       <!-- 项目表格 -->
       <el-table :data="projects" v-loading="loading">
         <el-table-column prop="number" label="项目编号" width="120" />
-        <el-table-column prop="title" label="项目名称" min-width="200" />
+        <el-table-column prop="title" label="项目名称" min-width="200">
+          <template #default="{ row }">
+            <a href="javascript:void(0)" class="project-title-link" @click="showProjectDetail(row)">
+              {{ row.title }}
+            </a>
+          </template>
+        </el-table-column>
         <el-table-column prop="leader_name" label="负责人" width="100" />
         <el-table-column prop="status_display" label="状态" width="100">
           <template #default="{ row }">
@@ -124,7 +130,7 @@
         <el-pagination
           v-model:current-page="pagination.current"
           v-model:page-size="pagination.size"
-          :total="pagination.total"
+          :total="pagination.total || 0" 
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="loadProjects"
@@ -135,6 +141,7 @@
 
 
     <!-- 项目表单对话框 -->
+    <!-- 在项目表单对话框后添加详情对话框 -->
     <project-form-dialog
       v-model="dialogVisible"
       :project="currentProject"
@@ -142,13 +149,40 @@
       :undertake-choices="undertakeChoices"
       @success="handleFormSuccess"
     />
+    
+    <!-- 项目详情对话框 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="项目详情"
+      width="70%"
+      @close="resetDetailDialog"
+    >
+      <div v-if="selectedProject" class="project-detail">
+    
+        <el-descriptions title="基本信息" :column="2"> <!-- 使用v-bind或简写:column="2"确保传递数字类型 -->
+          <el-descriptions-item label="项目编号">{{ selectedProject.number }}</el-descriptions-item>
+          <el-descriptions-item label="项目名称">{{ selectedProject.title }}</el-descriptions-item>
+          <el-descriptions-item label="项目负责人">{{ selectedProject.leader_name }}</el-descriptions-item>
+          <el-descriptions-item label="项目状态"><el-tag :type="getStatusTagType(selectedProject.status)">{{ selectedProject.status_display }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="项目类别">{{ selectedProject.category_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
+          <el-descriptions-item label="项目类型">{{ selectedProject.type_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
+          <el-descriptions-item label="项目来源">{{ selectedProject.source_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
+          <el-descriptions-item label="承担方式">{{ selectedProject.undertake_display }}</el-descriptions-item>
+          <el-descriptions-item label="预算(万元)">{{ selectedProject.budget ? formatCurrency(selectedProject.budget) : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="研究领域">{{ selectedProject.research_area || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="开始日期">{{ selectedProject.start_date }}</el-descriptions-item>
+          <el-descriptions-item label="结束日期">{{ selectedProject.end_date }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ selectedProject.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElDialog, ElDescriptions, ElDescriptionsItem, ElTag } from 'element-plus';
 import { Project, ProjectFilter } from '@/api/project';
 import { projectApi } from '@/api/project';
 import ProjectFormDialog from './ProjectFormDialog.vue';
@@ -160,6 +194,9 @@ const dialogVisible = ref(false);
 const currentProject = ref<Project | null>(null);
 const statusChoices = ref<any[]>([]);
 const undertakeChoices = ref<any[]>([]);
+// 项目详情对话框相关变量
+const detailDialogVisible = ref(false);
+const selectedProject = ref<Project | null>(null);
 
 
 const filterForm = ref<ProjectFilter>({
@@ -205,6 +242,7 @@ const loadProjects = async () => {
       params.category_id = filterForm.value.category_id;
     }
     if (filterForm.value.source) {
+      // 保持原样，传递字符串值用于模糊检索
       params.source = filterForm.value.source;
     }
     if (filterForm.value.undertake) {
@@ -214,18 +252,36 @@ const loadProjects = async () => {
     if (filterForm.value.leader_id) {
       params.leader_id = filterForm.value.leader_id;
     }
+    // 修复日期格式问题，确保日期转换为字符串
     if (filterForm.value.start_date) {
-      params.start_date = filterForm.value.start_date;
+      const date = new Date(filterForm.value.start_date);
+      // 使用更可靠的日期格式化方法，避免时区问题
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      params.start_date = `${year}-${month}-${day}`;
     }
     if (filterForm.value.end_date) {
-      params.end_date = filterForm.value.end_date;
+      const date = new Date(filterForm.value.end_date);
+      // 使用更可靠的日期格式化方法，避免时区问题
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      params.end_date = `${year}-${month}-${day}`;
     }
     
     // 添加分页参数
     params.page = pagination.value.current;
     params.size = pagination.value.size;
+
+    // 打印调试信息
+    // console.log('请求参数:', params);
     
     const response = await projectApi.getProjects(params);
+    // 打印调试信息
+    // 添加调试代码，检查返回的项目数据
+    // console.log('项目列表返回数据:', response.items);
+    // console.log('第一个项目的类别和来源数据:', response.items[0]?.category_id, response.items[0]?.category_name, response.items[0]?.source_id, response.items[0]?.source_name);
     projects.value = response.items;
     pagination.value.total = response.total;
   } catch (error) {
@@ -239,7 +295,7 @@ const loadProjects = async () => {
 // 加载选项数据
 const loadChoices = async () => {
   try {
-    const [statusRes, undertakeRes, typeRes, leaderRes] = await Promise.all([
+    const [statusRes, undertakeRes, categoryRes, typeRes, leaderRes] = await Promise.all([
       projectApi.getStatusChoices(),
       projectApi.getUndertakeChoices(),
       projectApi.getCategoryChoices(),
@@ -248,7 +304,7 @@ const loadChoices = async () => {
     ]);
     statusChoices.value = statusRes;
     undertakeChoices.value = undertakeRes;
-    categoryChoices.value = typeRes; // 使用类型选项作为类别选项
+    categoryChoices.value = categoryRes; // 使用类别API结果作为类别选项
     leaderChoices.value = leaderRes;
   } catch (error) {
     ElMessage.error('获取选项数据失败');
@@ -289,6 +345,18 @@ const deleteProject = async (project: Project) => {
   }
 };
 
+// 显示项目详情
+const showProjectDetail = (project: Project) => {
+  
+  selectedProject.value = project;
+  console.log('selectedProject.value', selectedProject.value);
+  detailDialogVisible.value = true;
+};
+
+// 重置详情对话框
+const resetDetailDialog = () => {
+  selectedProject.value = null;
+};
 
 // 表单提交成功处理
 const handleFormSuccess = () => {
@@ -303,6 +371,12 @@ const resetFilter = () => {
     title: '',
     number: '',
     status: '',
+    category_id: null,
+    source: null,
+    undertake: '',
+    leader_id: null,
+    start_date: null,
+    end_date: null
   };
   loadProjects();
 };
@@ -343,10 +417,29 @@ onMounted(() => {
   align-items: center;
 }
 
-
 .pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+    /* 确保分页容器可见 */
+  height: 40px;
+  width: 100%;
+  overflow: visible;
+}
+
+/* 项目链接样式 */
+.project-title-link {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.project-title-link:hover {
+  color: #66b1ff;
+  text-decoration: underline;
+}
+
+/* 项目详情样式 */
+.project-detail {
+  padding: 10px 0;
 }
 </style>

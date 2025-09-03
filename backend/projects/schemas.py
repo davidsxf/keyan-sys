@@ -57,3 +57,6 @@ class ProjectFilter(Schema):
     leader_id: Optional[int] = None
     undertake: Optional[str] = None
     source: Optional[str] = None
+    # 添加缺失的日期字段
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
