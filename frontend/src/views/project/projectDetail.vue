@@ -150,18 +150,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { useRoute, useRouter } from 'vue-router';
 import { Project } from '@/api/project';
 import { ProjectBudget, ProjectBudgetForm, Choice } from '@/api/projectBudget';
 import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
 
-// 路由相关
-const route = useRoute();
-const router = useRouter();
-const projectId = parseInt(route.params.id as string);
+// 定义props和emit
+const props = defineProps<{
+  projectId: number;
+}>();
+
+const emit = defineEmits<{
+  (e: 'close'): void;
+}>();
 
 // 项目数据
 const project = ref<Project>({} as Project);
@@ -177,7 +180,7 @@ const currentBudget = ref<ProjectBudget | null>(null);
 
 // 预算表单数据
 const budgetFormData = reactive<ProjectBudgetForm>({
-  project_id: projectId,
+  project_id: 0, // 修复：使用默认值 0 而不是直接引用 props
   name: '',
   amount: 0,
   year: new Date().getFullYear(),
@@ -231,11 +234,11 @@ const otherBudget = computed(() => {
     .reduce((sum, budget) => sum + (budget.amount || 0), 0);
 });
 
-// 加载项目详情
+// 加载项目详情 - 移到 watch 前面
 const loadProjectDetail = async () => {
   projectLoading.value = true;
   try {
-    project.value = await projectApi.getProject(projectId);
+    project.value = await projectApi.getProject(props.projectId);
   } catch (error) {
     ElMessage.error('获取项目详情失败');
     console.error('获取项目详情失败:', error);
@@ -244,11 +247,11 @@ const loadProjectDetail = async () => {
   }
 };
 
-// 加载项目预算列表
+// 加载项目预算列表 - 移到 watch 前面
 const loadProjectBudgets = async () => {
   budgetDataLoading.value = true;
   try {
-    const response = await projectBudgetApi.getProjectBudgets({ project_id: projectId });
+    const response = await projectBudgetApi.getProjectBudgets({ project_id: props.projectId });
     budgets.value = response.items;
   } catch (error) {
     ElMessage.error('获取预算列表失败');
@@ -257,6 +260,19 @@ const loadProjectBudgets = async () => {
     budgetDataLoading.value = false;
   }
 };
+
+// 监听projectId变化，重新加载数据 - 移到函数定义后面
+watch(
+  () => props.projectId,
+  (newId) => {
+    if (newId) {
+      budgetFormData.project_id = newId;
+      loadProjectDetail();
+      loadProjectBudgets();
+    }
+  },
+  { immediate: true }
+);
 
 // 加载预算类型选项
 const loadBudgetTypeChoices = async () => {
@@ -272,7 +288,7 @@ const loadBudgetTypeChoices = async () => {
 const showBudgetDialog = () => {
   currentBudget.value = null;
   // 重置表单数据
-  budgetFormData.project_id = projectId;
+  budgetFormData.project_id = props.projectId; // 修复：使用 props.projectId 而不是 projectId
   budgetFormData.name = '';
   budgetFormData.amount = 0;
   budgetFormData.year = new Date().getFullYear();
@@ -377,15 +393,20 @@ const handleEdit = () => {
   router.push(`/project/edit/${projectId}`);
 };
 
-// 返回上一页
+// 返回上一页（在对话框中改为关闭）
 const handleBack = () => {
-  router.back();
+  emit('close');
 };
 
-// 初始化数据
+// 初始化数据 - 现在通过watch监听props变化来加载数据，这里可以移除
+// onMounted(() => {
+//   loadProjectDetail();
+//   loadProjectBudgets();
+//   loadBudgetTypeChoices();
+// });
+
+// 确保加载预算类型选项
 onMounted(() => {
-  loadProjectDetail();
-  loadProjectBudgets();
   loadBudgetTypeChoices();
 });
 </script>

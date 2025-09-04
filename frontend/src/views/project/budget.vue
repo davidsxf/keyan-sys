@@ -149,16 +149,28 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 项目详情对话框 -->
+    <el-dialog
+      v-model="projectDetailDialogVisible"
+      title="项目详情"
+      width="80%"
+      :close-on-click-modal="false"
+      fullscreen
+    >
+      <ProjectDetail :project-id="selectedProjectId" @close="handleProjectDetailClose" />
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox, ElDialog } from 'element-plus';
 import { Project } from '@/api/project';
 import { ProjectBudget, ProjectBudgetForm, ProjectBudgetFilter, Choice } from '@/api/projectBudget';
 import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
+import ProjectDetail from './projectDetail.vue'; // 导入项目详情组件
 // 由于找不到模块，暂时实现简单的 formatCurrency 和 formatDate 函数
 const formatCurrency = (value: number): string => {
   return value.toFixed(2);
@@ -174,6 +186,8 @@ const loading = ref(false);
 const dialogVisible = ref(false);
 const formRef = ref<any>(null);
 const currentBudget = ref<ProjectBudget | null>(null);
+const projectDetailDialogVisible = ref(false); // 项目详情对话框显示状态
+const selectedProjectId = ref<number>(0); // 选中的项目ID
 
 // 分页数据
 const pagination = reactive({
@@ -368,10 +382,16 @@ const submitForm = async () => {
   }
 };
 
-// 显示项目详情（可以根据需要实现）
+// 显示项目详情
 const showProjectDetail = (projectId: number) => {
-  ElMessage.info(`查看项目ID为${projectId}的详情`);
-  // 这里可以跳转到项目详情页或打开项目详情对话框
+  selectedProjectId.value = projectId;
+  projectDetailDialogVisible.value = true;
+};
+
+// 处理项目详情对话框关闭事件
+const handleProjectDetailClose = () => {
+  projectDetailDialogVisible.value = false;
+  loadBudgets(); // 刷新预算列表
 };
 
 // 获取预算类型标签样式
