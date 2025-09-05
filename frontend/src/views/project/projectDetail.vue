@@ -43,28 +43,42 @@
           <!-- 预算统计 -->
           <div class="budget-summary">
             <el-row :gutter="20">
-              <el-col :span="6">
+              <el-col :span="4">
                 <div class="stat-item">
                   <div class="stat-label">总预算</div>
-                  <div class="stat-value">{{ totalBudget.toFixed(2) }}万元</div>
+                  <div class="stat-value">{{ project.budget ? project.budget.toFixed(2) : '0.00' }}万元</div>
                 </div>
               </el-col>
-              <el-col :span="6">
+              <el-col :span="4">
                 <div class="stat-item">
-                  <div class="stat-label">收入预算</div>
+                  <div class="stat-label">收入</div>
                   <div class="stat-value income">{{ incomeBudget.toFixed(2) }}万元</div>
                 </div>
               </el-col>
-              <el-col :span="6">
+            
+              <el-col :span="4">
                 <div class="stat-item">
-                  <div class="stat-label">支出预算</div>
+                  <div class="stat-label">支出</div>
                   <div class="stat-value expense">{{ expenseBudget.toFixed(2) }}万元</div>
                 </div>
               </el-col>
-              <el-col :span="6">
+                <!-- 统筹 -->
+              <el-col :span="4">
                 <div class="stat-item">
-                  <div class="stat-label">其他预算</div>
+                  <div class="stat-label">统筹</div>
                   <div class="stat-value other">{{ otherBudget.toFixed(2) }}万元</div>
+                </div>
+              </el-col>
+              <el-col :span="4">
+                <div class="stat-item">
+                  <div class="stat-label">其他</div>
+                  <div class="stat-value other">{{ otherBudget.toFixed(2) }}万元</div>
+                </div>
+              </el-col>
+              <el-col :span="4">
+                <div class="stat-item">
+                  <div class="stat-label">结余</div>
+                  <div class="stat-value other">{{ remainingBudget.toFixed(2) }}万元</div>
                 </div>
               </el-col>
             </el-row>
@@ -211,7 +225,7 @@ const budgetFormTitle = computed(() => {
   return currentBudget.value ? '编辑预算' : '新增预算';
 });
 
-// 预算统计数据
+// 修改预算统计数据相关计算属性
 const totalBudget = computed(() => {
   return budgets.value.reduce((sum, budget) => sum + (budget.amount || 0), 0);
 });
@@ -228,10 +242,31 @@ const expenseBudget = computed(() => {
     .reduce((sum, budget) => sum + (budget.amount || 0), 0);
 });
 
+// 统筹预算
+const tongchouBudget = computed(() => {
+  return budgets.value
+    .filter(budget => budget.type === 'COORDINATION')
+    .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+});
+
 const otherBudget = computed(() => {
   return budgets.value
     .filter(budget => budget.type !== 'INCOME' && budget.type !== 'EXPENSE')
     .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+});
+
+// 结余经费
+const remainingBudget = computed(() => {
+  return incomeBudget.value - expenseBudget.value - otherBudget.value - tongchouBudget.value;
+});
+
+// 新增格式化的总预算计算属性
+const formattedTotalBudget = computed(() => {
+  const remaining = incomeBudget.value - expenseBudget.value - otherBudget.value;
+  return {
+    value: totalBudget.value,
+    formatted: `项目预算 ${incomeBudget.value.toFixed(2)}-${expenseBudget.value.toFixed(2)}-${otherBudget.value.toFixed(2)} = ${remaining.toFixed(2)}`
+  };
 });
 
 // 加载项目详情 - 移到 watch 前面
