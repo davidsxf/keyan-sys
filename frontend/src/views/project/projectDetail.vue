@@ -134,7 +134,13 @@
           <el-input v-model="budgetFormData.name" placeholder="请输入预算名称" />
         </el-form-item>
         <el-form-item label="金额(万元)" prop="amount">
-          <el-input v-model.number="budgetFormData.amount" placeholder="请输入金额" />
+          <el-input 
+            v-model.number="budgetFormData.amount" 
+            placeholder="请输入金额" 
+            type="number" 
+            :step="0.01" 
+            :precision="2"
+          />
         </el-form-item>
         <el-form-item label="预算年度" prop="year">
           <el-input v-model.number="budgetFormData.year" placeholder="请输入预算年度" />
@@ -194,9 +200,9 @@ const currentBudget = ref<ProjectBudget | null>(null);
 
 // 预算表单数据
 const budgetFormData = reactive<ProjectBudgetForm>({
-  project_id: 0, // 修复：使用默认值 0 而不是直接引用 props
+  project_id: 0, 
   name: '',
-  amount: 0,
+  amount: 0.00, // 修改为小数格式
   year: new Date().getFullYear(),
   type: '',
   remark: ''
@@ -209,7 +215,27 @@ const budgetFormRules = {
   ],
   amount: [
     { required: true, message: '请输入金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '金额必须大于等于0', trigger: 'blur' }
+    { type: 'number', min: 0, message: '金额必须大于等于0', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        // 确保 value 是数字类型
+        const numValue = typeof value === 'number' ? value : parseFloat(value);
+        
+        // 仅在新增收入预算时进行验证
+        if (!currentBudget.value && budgetFormData.type === 'INCOME' && project.value.budget) {
+          const newIncome = !isNaN(numValue) ? numValue : 0;
+          const totalIncome = incomeBudget.value + newIncome;
+          
+          // 浮点数比较时考虑精度问题
+          if (totalIncome > project.value.budget + 0.0001) {
+            callback(new Error(`收入金额不能超过项目总预算 ${project.value.budget.toFixed(2)} 万元`));
+            return;
+          }
+        }
+        callback();
+      },
+      trigger: 'blur'
+    }
   ],
   year: [
     { required: true, message: '请输入预算年度', trigger: 'blur' },
@@ -322,10 +348,9 @@ const loadBudgetTypeChoices = async () => {
 // 显示预算对话框
 const showBudgetDialog = () => {
   currentBudget.value = null;
-  // 重置表单数据
-  budgetFormData.project_id = props.projectId; // 修复：使用 props.projectId 而不是 projectId
+  budgetFormData.project_id = props.projectId;
   budgetFormData.name = '';
-  budgetFormData.amount = 0;
+  budgetFormData.amount = 0.00; // 修改为小数格式
   budgetFormData.year = new Date().getFullYear();
   budgetFormData.type = '';
   budgetFormData.remark = '';
@@ -338,7 +363,7 @@ const editBudget = (budget: ProjectBudget) => {
   // 填充表单数据
   budgetFormData.project_id = budget.project_id;
   budgetFormData.name = budget.name;
-  budgetFormData.amount = budget.amount || 0;
+  budgetFormData.amount = budget.amount || 0.00; // 修改为小数格式
   budgetFormData.year = budget.year || new Date().getFullYear();
   budgetFormData.type = budget.type;
   budgetFormData.remark = budget.remark || '';
@@ -442,6 +467,7 @@ const handleBack = () => {
 
 // 确保加载预算类型选项
 onMounted(() => {
+  // loadProjectBudgets();
   loadBudgetTypeChoices();
 });
 </script>

@@ -119,7 +119,7 @@
         </el-form-item>
 
         <el-form-item label="金额(万元)" prop="amount">
-          <el-input v-model.number="formData.amount" placeholder="请输入金额" />
+          <el-input v-model.number="formData.amount" :precision="2" placeholder="请输入金额" />
         </el-form-item>
 
         <el-form-item label="预算年度" prop="year">
@@ -209,11 +209,24 @@ const filterForm = reactive({
 const formData = reactive<ProjectBudgetForm>({
   project_id: 0,
   name: '',
-  amount: 0,
+  amount: 0.00, // 修改为小数默认值
   year: new Date().getFullYear(),
   type: '',
   remark: ''
 });
+
+// 显示新增对话框
+const showDialog = () => {
+  currentBudget.value = null;
+  // 重置表单数据
+  formData.project_id = 0;
+  formData.name = '';
+  formData.amount = 0.00; // 修改为小数默认值
+  formData.year = new Date().getFullYear();
+  formData.type = '';
+  formData.remark = '';
+  dialogVisible.value = true;
+};
 
 // 表单规则
 const formRules = {
@@ -225,7 +238,7 @@ const formRules = {
   ],
   amount: [
     { required: true, message: '请输入金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '金额必须大于等于0', trigger: 'blur' }
+    { type: 'number', min: 0.00, message: '金额必须大于等于0', trigger: 'blur' }
   ],
   year: [
     { required: true, message: '请输入预算年度', trigger: 'blur' },
@@ -307,26 +320,13 @@ const resetFilter = () => {
   loadBudgets();
 };
 
-// 显示新增对话框
-const showDialog = () => {
-  currentBudget.value = null;
-  // 重置表单数据
-  formData.project_id = 0;
-  formData.name = '';
-  formData.amount = 0;
-  formData.year = new Date().getFullYear();
-  formData.type = '';
-  formData.remark = '';
-  dialogVisible.value = true;
-};
-
 // 编辑预算
 const editBudget = (budget: ProjectBudget) => {
   currentBudget.value = budget;
   // 填充表单数据
   formData.project_id = budget.project_id;
   formData.name = budget.name;
-  formData.amount = budget.amount || 0;
+  formData.amount = budget.amount || 0.00;
   formData.year = budget.year || new Date().getFullYear();
   formData.type = budget.type;
   formData.remark = budget.remark || '';
