@@ -172,8 +172,14 @@ import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
 import ProjectDetail from './projectDetail.vue'; // 导入项目详情组件
 // 由于找不到模块，暂时实现简单的 formatCurrency 和 formatDate 函数
+
+
+// 格式化金额 - 修改为与 project.vue 中相同的实现
 const formatCurrency = (value: number): string => {
-  return value.toFixed(2);
+  return value.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 };
 
 const formatDate = (dateStr: string): string => {
@@ -221,7 +227,7 @@ const showDialog = () => {
   // 重置表单数据
   formData.project_id = 0;
   formData.name = '';
-  formData.amount = 0.00; // 修改为小数默认值
+  formData.amount = ''; // 修改为小数默认值
   formData.year = new Date().getFullYear();
   formData.type = '';
   formData.remark = '';
@@ -236,10 +242,10 @@ const formRules = {
   name: [
     { required: true, message: '请输入预算名称', trigger: 'blur' }
   ],
-  amount: [
-    { required: true, message: '请输入金额', trigger: 'blur' },
-    { type: 'number', min: 0.00, message: '金额必须大于等于0', trigger: 'blur' }
-  ],
+  // amount: [
+  //   { required: true, message: '请输入金额', trigger: 'blur' },
+  //   { type: 'number', min: 0.00, message: '金额必须大于等于0', trigger: 'blur' }
+  // ],
   year: [
     { required: true, message: '请输入预算年度', trigger: 'blur' },
     { type: 'number', message: '请输入有效的年份', trigger: 'blur' }
