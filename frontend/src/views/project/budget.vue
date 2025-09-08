@@ -119,7 +119,7 @@
         </el-form-item>
 
         <el-form-item label="金额(万元)" prop="amount">
-          <el-input v-model.number="formData.amount" :precision="2" placeholder="请输入金额" />
+          <el-input v-model.number="formData.amount" type="number" :step="0.01" :precision="2" placeholder="请输入金额" />
         </el-form-item>
 
         <el-form-item label="预算年度" prop="year">
@@ -215,7 +215,7 @@ const filterForm = reactive({
 const formData = reactive<ProjectBudgetForm>({
   project_id: 0,
   name: '',
-  amount: 0.00, // 修改为小数默认值
+  amount: 0.00, 
   year: new Date().getFullYear(),
   type: '',
   remark: ''
@@ -223,14 +223,14 @@ const formData = reactive<ProjectBudgetForm>({
 
 // 显示新增对话框
 const showDialog = () => {
-  currentBudget.value = null;
-  // 重置表单数据
-  formData.project_id = 0;
-  formData.name = '';
-  formData.amount = ''; // 修改为小数默认值
-  formData.year = new Date().getFullYear();
-  formData.type = '';
-  formData.remark = '';
+  // currentBudget.value = null;
+  // // 重置表单数据
+  // formData.project_id = 0;
+  // formData.name = '';
+  // formData.amount = 0.00; 
+  // formData.year = new Date().getFullYear();
+  // formData.type = '';
+  // formData.remark = '';
   dialogVisible.value = true;
 };
 

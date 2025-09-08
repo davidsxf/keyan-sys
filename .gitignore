@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # Distribution / packaging
 .Python
 build/
@@ -41,3 +42,6 @@ ENV/
 *.swp
 *.swo
 *~
+*.pyc
+
+cached *.pyc
