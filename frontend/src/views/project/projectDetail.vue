@@ -172,8 +172,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Project } from '@/api/project';
-import { ProjectBudget, ProjectBudgetForm, Choice } from '@/api/projectBudget';
+import { Project, Choice } from '@/api/project';
+import { ProjectBudget, ProjectBudgetForm } from '@/api/projectBudget';
 import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
 
@@ -232,6 +232,44 @@ const budgetFormRules = {
             return;
           }
         }
+        
+        // 验证支出、统筹、其他不能大于结余
+        if (budgetFormData.type !== 'INCOME') {
+          const newAmount = !isNaN(numValue) ? numValue : 0;
+          const currentAmount = currentBudget.value ? currentBudget.value.amount || 0 : 0;
+          const amountDiff = newAmount - currentAmount;
+          
+          let totalExpense = expenseBudget.value;
+          let totalTongchou = tongchouBudget.value;
+          let totalOther = otherBudget.value;
+          
+          // 根据当前编辑的预算类型调整相应的总额
+          if (currentBudget.value) {
+            if (currentBudget.value.type === 'EXPENSE') {
+              totalExpense -= currentAmount;
+            } else if (currentBudget.value.type === 'COORDINATION') {
+              totalTongchou -= currentAmount;
+            } else if (currentBudget.value.type !== 'INCOME') {
+              totalOther -= currentAmount;
+            }
+          }
+          
+          if (budgetFormData.type === 'EXPENSE') {
+            totalExpense += newAmount;
+          } else if (budgetFormData.type === 'COORDINATION') {
+            totalTongchou += newAmount;
+          } else if (budgetFormData.type !== 'INCOME') {
+            totalOther += newAmount;
+          }
+          
+          const totalSpending = totalExpense + totalTongchou + totalOther;
+          
+          if (totalSpending > incomeBudget.value + 0.0001) {
+            callback(new Error(`支出、统筹、其他总额 ${totalSpending.toFixed(2)} 万元不能大于收入总额 ${incomeBudget.value.toFixed(2)} 万元`));
+            return;
+          }
+        }
+        
         callback();
       },
       trigger: 'blur'
@@ -450,7 +488,8 @@ const formatDateTime = (dateStr?: string): string => {
 
 // 编辑项目
 const handleEdit = () => {
-  router.push(`/project/edit/${projectId}`);
+  // 使用emit或其他方式处理编辑导航
+  console.log('编辑项目:', props.projectId);
 };
 
 // 返回上一页（在对话框中改为关闭）
