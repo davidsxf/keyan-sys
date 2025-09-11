@@ -61,6 +61,14 @@ class Project(models.Model):
         on_delete=models.SET_NULL,
         verbose_name=_("项目负责人")
     )
+
+#     participants = models.ManyToManyField(
+#     Staff,
+#     through='ProjectStaff',
+#     related_name='participated_projects',
+#     verbose_name=_("参与人员"),
+#     blank=True
+# )
     start_date = models.DateField(
         null=True, 
         blank=True,
@@ -253,3 +261,80 @@ class ProjectBudget(models.Model):
 
     def __str__(self):
         return f'{self.project.title} - {self.name} ({self.get_type_display()})'
+
+
+
+
+
+# 项目参与人员
+
+
+class ProjectStaff(models.Model):
+    ROLE_CHOICES = [
+        ('leader', '负责人'),
+        ('member', '成员'),
+        ('advisor', '顾问'),
+    ]
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        verbose_name=_("项目")
+    )
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE,
+        verbose_name=_("参与人员")
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default='member',
+        verbose_name=_("角色")
+    )
+    order = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name=_("排序")
+    )
+    join_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("加入时间")
+    )
+    leave_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_("离开日期")
+    )
+    remark = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("备注")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('project', 'staff')]  # 同一项目同一人只记录一次
+        verbose_name = _("项目参与人员")
+        verbose_name_plural = _("项目参与人员")
+
+    def __str__(self):
+        return f"{self.staff.name} - {self.project.title} ({self.role})"
+
+
+    @property
+    def project_title(self):
+        return self.project.title if self.project else None
+
+    @property
+    def staff_name(self):
+        return self.staff.name if self.staff else None
+
+    @property
+    def staff_department(self):
+        return self.staff.department.name if self.staff and self.staff.department else None
+
+    @property
+    def role_display(self):
+        return str(dict(ParticipantRole.choices).get(self.role, self.role))

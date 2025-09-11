@@ -95,3 +95,46 @@ class ProjectBudgetFilter(Schema):
     # 日期范围筛选
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+
+
+# 在文件末尾添加
+
+# 项目参与人员
+class ProjectParticipantIn(Schema):
+    """项目参与人员创建/更新输入结构"""
+    project_id: int
+    staff_id: int
+    role: str
+    order: Optional[int] = None
+    join_date: Optional[date] = None
+    leave_date: Optional[date] = None
+
+    remark: Optional[str] = None
+
+
+class ProjectParticipantOut(Schema):
+    """项目参与人员输出结构"""
+    id: int
+    project_id: int
+    project_title: Optional[str] = None
+    staff_id: int
+    staff_name: Optional[str] = None
+    staff_department: Optional[str] = None
+    role: str
+    role_display: Optional[str] = None
+    order: Optional[int] = None
+    join_date: Optional[date] = None
+    leave_date: Optional[date] = None
+    
+    remark: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectParticipantFilter(Schema):
+    """项目参与人员筛选结构"""
+    project_id: Optional[int] = None
+    staff_id: Optional[int] = None
+    role: Optional[str] = None
+    join_date: Optional[date] = None
+    leave_date: Optional[date] = None
