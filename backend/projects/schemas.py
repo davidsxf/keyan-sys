@@ -100,7 +100,7 @@ class ProjectBudgetFilter(Schema):
 # 在文件末尾添加
 
 # 项目参与人员
-class ProjectParticipantIn(Schema):
+class ProjectStaffIn(Schema):
     """项目参与人员创建/更新输入结构"""
     project_id: int
     staff_id: int
@@ -112,7 +112,7 @@ class ProjectParticipantIn(Schema):
     remark: Optional[str] = None
 
 
-class ProjectParticipantOut(Schema):
+class ProjectStaffOut(Schema):
     """项目参与人员输出结构"""
     id: int
     project_id: int
@@ -131,10 +131,10 @@ class ProjectParticipantOut(Schema):
     updated_at: datetime
 
 
-class ProjectParticipantFilter(Schema):
+class ProjectStaffFilter(Schema):
     """项目参与人员筛选结构"""
     project_id: Optional[int] = None
     staff_id: Optional[int] = None
+    staff_name: Optional[str] = None
     role: Optional[str] = None
-    join_date: Optional[date] = None
-    leave_date: Optional[date] = None
+  

@@ -337,4 +337,4 @@ class ProjectStaff(models.Model):
 
     @property
     def role_display(self):
-        return str(dict(ParticipantRole.choices).get(self.role, self.role))
+        return str(dict(ProjectStaff.ROLE_CHOICES).get(self.role, self.role))

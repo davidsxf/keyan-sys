@@ -5,10 +5,8 @@ from ninja.pagination import paginate, PageNumberPagination
 from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
-from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,
-ProjectParticipant
-from .schemas import ProjectIn, ProjectOut, ProjectFilter,
-ProjectParticipantIn, ProjectParticipantOut, ProjectParticipantFilter
+from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff
+from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter
 
 
 api = NinjaAPI(title="项目管理API", version="1.0.0")
@@ -224,11 +222,11 @@ def get_budget_type_choices(request):
 
 # 在文件末尾添加项目参与人员相关API
 
-@router.get("/participants", response=List[ProjectParticipantOut])
+@router.get("/participants", response=List[ProjectStaffOut])
 @paginate(CustomPagination)
-def list_project_participants(request, filters: ProjectParticipantFilter = Query(None)):
+def list_project_participants(request, filters: ProjectStaffFilter = Query(None)):
     """获取项目参与人员列表"""
-    queryset = ProjectParticipant.objects.all().select_related('project', 'staff')
+    queryset = ProjectStaff.objects.all().select_related('project', 'staff')
     
     # 应用筛选条件
     if filters:
@@ -236,36 +234,38 @@ def list_project_participants(request, filters: ProjectParticipantFilter = Query
             queryset = queryset.filter(project_id=filters.project_id)
         if filters.staff_id:
             queryset = queryset.filter(staff_id=filters.staff_id)
+        if filters.staff_name:
+            queryset = queryset.filter(staff__name__icontains=filters.staff_name)
         if filters.role:
             queryset = queryset.filter(role=filters.role)
-        if filters.join_date:
-            queryset = queryset.filter(join_date__gte=filters.join_date)
-        if filters.leave_date:
-            queryset = queryset.filter(leave_date__lte=filters.leave_date)
+        # if filters.join_date:
+        #     queryset = queryset.filter(join_date__gte=filters.join_date)
+        # if filters.leave_date:
+        #     queryset = queryset.filter(leave_date__lte=filters.leave_date)
     
     return queryset
 
 
-@router.get("/participants/{participant_id}", response=ProjectParticipantOut)
+@router.get("/participants/{participant_id}", response=ProjectStaffOut)
 def get_project_participant(request, participant_id: int):
     """获取单个项目参与人员详情"""
-    participant = get_object_or_404(ProjectParticipant.objects.select_related('project', 'staff'), id=participant_id)
+    participant = get_object_or_404(ProjectStaff.objects.select_related('project', 'staff'), id=participant_id)
     return participant
 
 
-@router.post("/participants", response=ProjectParticipantOut)
-def create_project_participant(request, data: ProjectParticipantIn):
+@router.post("/participants", response=ProjectStaffOut)
+def create_project_participant(request, data: ProjectStaffIn):
     """创建项目参与人员"""
     # 检查项目和员工是否存在
     project = get_object_or_404(Project, id=data.project_id)
     staff = get_object_or_404(Staff, id=data.staff_id)
     
     # 检查是否已存在参与关系
-    if ProjectParticipant.objects.filter(project=project, staff=staff).exists():
-        raise HttpError(400, "该员工已参与此项目")
+    if ProjectStaff.objects.filter(project=project, staff=staff).exists():
+        raise Exception("该员工已参与此项目")
     
     # 创建参与关系
-    participant = ProjectParticipant.objects.create(
+    participant = ProjectStaff.objects.create(
         project=project,
         staff=staff,
         role=data.role,
@@ -278,22 +278,24 @@ def create_project_participant(request, data: ProjectParticipantIn):
     return participant
 
 
-@router.put("/participants/{participant_id}", response=ProjectParticipantOut)
-def update_project_participant(request, participant_id: int, data: ProjectParticipantIn):
+@router.put("/participants/{participant_id}", response=ProjectStaffOut)
+def update_project_participant(request, participant_id: int, data: ProjectStaffIn):
     """更新项目参与人员信息"""
-    participant = get_object_or_404(ProjectParticipant, id=participant_id)
+    participant = get_object_or_404(ProjectStaff, id=participant_id)
     
     # 检查项目和员工是否存在
     project = get_object_or_404(Project, id=data.project_id)
     staff = get_object_or_404(Staff, id=data.staff_id)
-    
+    # 检查是否已存在参与关系
+    if ProjectStaff.objects.filter(project=project, staff=staff).exists():
+        raise Exception("该员工已参与此项目")
     # 更新参与关系
     participant.project = project
     participant.staff = staff
     participant.role = data.role
+    participant.order = data.order
     participant.join_date = data.join_date
     participant.leave_date = data.leave_date
-    participant.workload = data.workload
     participant.remark = data.remark
     participant.save()
     
@@ -303,7 +305,7 @@ def update_project_participant(request, participant_id: int, data: ProjectPartic
 @router.delete("/participants/{participant_id}")
 def delete_project_participant(request, participant_id: int):
     """删除项目参与人员"""
-    participant = get_object_or_404(ProjectParticipant, id=participant_id)
+    participant = get_object_or_404(ProjectStaff, id=participant_id)
     participant.delete()
     return {"success": True, "message": "项目参与人员删除成功"}
 
@@ -311,13 +313,13 @@ def delete_project_participant(request, participant_id: int):
 @router.get("/participants/roles")
 def get_participant_role_choices(request):
     """获取项目参与人员角色选项"""
-    return [{"value": choice[0], "label": choice[1]} for choice in ParticipantRole.choices]
+    return [{"value": choice[0], "label": choice[1]} for choice in ProjectStaff.ROLE_CHOICES]
 
 
-@router.get("/{project_id}/participants", response=List[ProjectParticipantOut])
+@router.get("/{project_id}/participants", response=List[ProjectStaffOut])
 @paginate(CustomPagination)
 def list_project_participants_by_project(request, project_id: int):
     """获取指定项目的所有参与人员"""
     project = get_object_or_404(Project, id=project_id)
-    participants = ProjectParticipant.objects.filter(project=project).select_related('staff')
+    participants = ProjectStaff.objects.filter(project=project).select_related('staff')
     return participants
