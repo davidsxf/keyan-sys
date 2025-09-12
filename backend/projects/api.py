@@ -1,10 +1,12 @@
 # api.py
+# 在文件顶部添加HttpError的导入
 from ninja import Router
 from ninja import NinjaAPI, Query
 from ninja.pagination import paginate, PageNumberPagination
 from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from ninja.errors import HttpError  # 添加这行导入
 from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff
 from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter
 
@@ -222,9 +224,9 @@ def get_budget_type_choices(request):
 
 # 在文件末尾添加项目参与人员相关API
 
-@router.get("/participants", response=List[ProjectStaffOut])
+@router.get("/participants/list", response=List[ProjectStaffOut])
 @paginate(CustomPagination)
-def list_project_participants(request, filters: ProjectStaffFilter = Query(None)):
+def list_project_participants(request, filters: ProjectStaffFilter = Query(...)):  # 使用...作为默认值
     """获取项目参与人员列表"""
     queryset = ProjectStaff.objects.all().select_related('project', 'staff')
     
@@ -246,36 +248,54 @@ def list_project_participants(request, filters: ProjectStaffFilter = Query(None)
     return queryset
 
 
-@router.get("/participants/{participant_id}", response=ProjectStaffOut)
-def get_project_participant(request, participant_id: int):
-    """获取单个项目参与人员详情"""
-    participant = get_object_or_404(ProjectStaff.objects.select_related('project', 'staff'), id=participant_id)
-    return participant
+@router.get("/participants/roles")
+def get_participant_role_choices(request):
+    """获取项目参与人员角色选项"""
+    return [{"value": choice[0], "label": choice[1]} for choice in ProjectStaff.ROLE_CHOICES]
 
 
-@router.post("/participants", response=ProjectStaffOut)
+@router.post("/participants/create", response=ProjectStaffOut)
 def create_project_participant(request, data: ProjectStaffIn):
     """创建项目参与人员"""
     # 检查项目和员工是否存在
+    print('create_project_participant data:', data)
     project = get_object_or_404(Project, id=data.project_id)
     staff = get_object_or_404(Staff, id=data.staff_id)
     
     # 检查是否已存在参与关系
     if ProjectStaff.objects.filter(project=project, staff=staff).exists():
-        raise Exception("该员工已参与此项目")
+        # 替换为HttpError，这样前端就能接收到错误信息
+        raise HttpError(400, "该员工已参与此项目")
     
     # 创建参与关系
     participant = ProjectStaff.objects.create(
         project=project,
         staff=staff,
         role=data.role,
+        order=data.order,
         join_date=data.join_date,
         leave_date=data.leave_date,
-        workload=data.workload,
         remark=data.remark
     )
     
     return participant
+
+
+
+
+
+@router.get("/participants/{participant_id}", response=ProjectStaffOut)
+def get_project_participant(request, participant_id: int):
+    """获取参与人员的参与项目详情"""
+    participant = get_object_or_404(ProjectStaff.objects.select_related('project', 'staff'), id=participant_id)
+    return participant
+
+
+@router.get("/participants/{participant_id}/projects", response=List[ProjectOut])
+def get_participant_projects(request, participant_id: int):
+    """获取参与人员参与的项目列表"""
+    projects = ProjectStaff.objects.filter(staff_id=participant_id).select_related('project')
+    return [ps.project for ps in projects]
 
 
 @router.put("/participants/{participant_id}", response=ProjectStaffOut)
@@ -302,6 +322,7 @@ def update_project_participant(request, participant_id: int, data: ProjectStaffI
     return participant
 
 
+
 @router.delete("/participants/{participant_id}")
 def delete_project_participant(request, participant_id: int):
     """删除项目参与人员"""
@@ -310,10 +331,7 @@ def delete_project_participant(request, participant_id: int):
     return {"success": True, "message": "项目参与人员删除成功"}
 
 
-@router.get("/participants/roles")
-def get_participant_role_choices(request):
-    """获取项目参与人员角色选项"""
-    return [{"value": choice[0], "label": choice[1]} for choice in ProjectStaff.ROLE_CHOICES]
+
 
 
 @router.get("/{project_id}/participants", response=List[ProjectStaffOut])

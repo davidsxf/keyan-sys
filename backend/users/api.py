@@ -1,9 +1,11 @@
 from ninja import Router
 from typing import List, Optional
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from ninja.errors import HttpError
 from .schemas import DepartmentIn, DepartmentOut, TeamIn, TeamOut,StaffIn, StaffOut, DepartmentOption, TeamOption
 from .models import Team, Staff, Department
+
 
 router = Router(tags=["users"])
 

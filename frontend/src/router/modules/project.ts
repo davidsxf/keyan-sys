@@ -25,6 +25,15 @@ export default {
         showParent: true
       }
     },
+    {
+      path: "/project/participant",
+      name: "Participant",
+      component: () => import("@/views/project/participant.vue"),
+      meta: {
+        title: "项目参与人员",
+        showParent: true
+      }
+    },
     // {
     //   path: "/base/org",
     //   name: "Org",

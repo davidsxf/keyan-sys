@@ -271,7 +271,7 @@ class ProjectBudget(models.Model):
 
 class ProjectStaff(models.Model):
     ROLE_CHOICES = [
-        ('leader', '负责人'),
+        # ('leader', '负责人'),
         ('member', '成员'),
         ('advisor', '顾问'),
     ]
