@@ -7,8 +7,8 @@ from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from ninja.errors import HttpError  # 添加这行导入
-from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff
-from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter
+from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff,ProjectDocument
+from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter,ProjectDocumentIn,ProjectDocumentOut,ProjectDocumentFilter
 
 
 api = NinjaAPI(title="项目管理API", version="1.0.0")
@@ -306,8 +306,8 @@ def update_project_participant(request, participant_id: int, data: ProjectStaffI
     # 检查项目和员工是否存在
     project = get_object_or_404(Project, id=data.project_id)
     staff = get_object_or_404(Staff, id=data.staff_id)
-    # 检查是否已存在参与关系
-    if ProjectStaff.objects.filter(project=project, staff=staff).exists():
+    # 检查是否已存在参与关系（排除当前记录）
+    if ProjectStaff.objects.filter(project=project, staff=staff).exclude(id=participant_id).exists():
         raise Exception("该员工已参与此项目")
     # 更新参与关系
     participant.project = project
@@ -341,3 +341,69 @@ def list_project_participants_by_project(request, project_id: int):
     project = get_object_or_404(Project, id=project_id)
     participants = ProjectStaff.objects.filter(project=project).select_related('staff')
     return participants
+
+
+# 项目文档相关API
+
+
+from projects.schemas import ProjectDocumentIn, ProjectDocumentOut, ProjectDocumentFilter
+from django.db.models import Case, When, Value, CharField
+from django.db.models.functions import Coalesce
+from django.db.models import F, Q
+
+@router.get("/{project_id}/documents", response=List[ProjectDocumentOut])
+@paginate(CustomPagination)
+def list_project_documents(request, project_id: int, filters: ProjectDocumentFilter = Query(...)):
+    """获取指定项目的所有文档"""
+    queryset = ProjectDocument.objects.filter(project_id=project_id)
+    
+    # 应用筛选条件
+    if filters:
+        if filters.name:
+            queryset = queryset.filter(name__icontains=filters.name)
+    
+    return queryset.annotate(
+        project_title=Case(
+            When(project__title__isnull=False, then=Value(F('project__title'))),
+            default=Value(''),
+            output_field=CharField()
+        )
+    )
+
+
+@router.post("/{project_id}/documents", response=ProjectDocumentOut)
+def create_project_document(request, project_id: int, data: ProjectDocumentIn):
+    """创建项目文档"""
+    project = get_object_or_404(Project, id=project_id)
+    document = ProjectDocument.objects.create(
+        project=project,
+        name=data.name,
+        file=data.file,
+        remark=data.remark
+    )
+    return document
+
+@router.get("/documents/{document_id}", response=ProjectDocumentOut)
+def get_project_document(request, document_id: int):
+    """获取项目文档详情"""
+    document = get_object_or_404(ProjectDocument, id=document_id)
+    return document
+
+
+@router.put("/documents/{document_id}", response=ProjectDocumentOut)
+def update_project_document(request, document_id: int, data: ProjectDocumentIn):
+    """更新项目文档"""
+    document = get_object_or_404(ProjectDocument, id=document_id)
+    document.name = data.name
+    document.file = data.file
+    document.remark = data.remark
+    document.save()
+    return document
+    
+
+@router.delete("/documents/{document_id}")
+def delete_project_document(request, document_id: int):
+    """删除项目文档"""
+    document = get_object_or_404(ProjectDocument, id=document_id)
+    document.delete()
+    return {"success": True, "message": "项目文档删除成功"}

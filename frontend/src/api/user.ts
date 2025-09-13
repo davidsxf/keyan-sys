@@ -35,11 +35,21 @@ export type RefreshTokenResult = {
 };
 
 /** 登录 */
-export const getLogin = (data?: object) => {
-  return http.request<UserResult>("post", "/login", { data });
+/** 登录接口 */
+export const getLogin = (data?) => {
+  // 将路径从 /api/v1/auth/login 修改为 /api/v1/users/auth/login
+  console.log(data);
+  return http.post<UserResult>("/api/v1/users/auth/login", {data});
 };
 
-/** 刷新`token` */
-export const refreshTokenApi = (data?: object) => {
-  return http.request<RefreshTokenResult>("post", "/refresh-token", { data });
+/** 刷新token */
+export const refreshTokenApi = (data?) => {
+  // 将路径从 /api/v1/auth/refresh-token 修改为 /api/v1/users/auth/refresh-token
+  return http.post<API.RefreshTokenResult>("/api/v1/users/auth/refresh-token", {data});
+};
+
+/** 登出接口 */
+export const logoutApi = () => {
+  // 将路径从 /api/v1/auth/logout 修改为 /api/v1/users/auth/logout
+  return http.post<API.LoginResult>("/api/v1/users/auth/logout");
 };

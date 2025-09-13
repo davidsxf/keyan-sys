@@ -1,5 +1,11 @@
-from ninja import Router
-from typing import List, Optional
+from ninja import Router, Schema
+from typing import List
+from django.contrib.auth import authenticate, login, logout
+
+from datetime import datetime, timedelta
+import jwt
+from django.conf import settings
+from typing import Optional
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from ninja.errors import HttpError
@@ -63,7 +69,6 @@ def update_department(request, dept_id: int, data: DepartmentIn):
     
     # 检查是否试图将部门设置为自己的父部门
     if data.parent_id == dept_id:
-        from ninja.errors import HttpError
         raise HttpError(400, "部门不能成为自己的父部门")
     
     parent = None
@@ -339,3 +344,67 @@ def prepare_staff_response(staff):
         "created_at": staff.created_at,
         "updated_at": staff.updated_at
     }
+
+
+# 创建认证路由
+auth_router = Router(tags=['认证'])
+
+# 添加LoginSchema定义
+class LoginSchema(Schema):
+    username: str
+    password: str
+
+class UserSchema(Schema):
+    id: int
+    username: str
+    first_name: str
+    last_name: str
+    email: str
+
+@auth_router.post('/login')
+def admin_login(request, data: LoginSchema):
+    """管理员登录接口"""
+    print(data)
+    user = authenticate(username=data.username, password=data.password)
+    if user is not None:
+        login(request, user)
+        # 生成JWT token
+        payload = {
+            'user_id': user.id,
+            'username': user.username,
+            'exp': datetime.utcnow() + timedelta(hours=24)  # 24小时过期
+        }
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        
+        return {
+            'success': True,
+            'data': {
+                'accessToken': token,
+                'expires': int((datetime.utcnow() + timedelta(hours=24)).timestamp() * 1000),
+                'refreshToken': token,  # 简化版，实际项目中应使用单独的refresh token
+                'username': user.username,
+                'nickname': f"{user.first_name} {user.last_name}",
+                'avatar': '',
+                'roles': ['admin'] if user.is_superuser else ['user'],
+                'permissions': ['*:*:*'] if user.is_superuser else []
+            }
+        }
+    return {
+        'success': False,
+        'message': '用户名或密码错误'
+    }
+
+@auth_router.post('/logout')
+def admin_logout(request):
+    """管理员登出接口"""
+    logout(request)
+    return {'success': True}
+
+@auth_router.post('/refresh-token')
+def refresh_token(request):
+    """刷新token接口"""
+    # 简化实现，实际项目中应根据refresh token生成新的access token
+    return {'success': True}
+
+# 将认证路由添加到主路由器
+router.add_router('/auth', auth_router)

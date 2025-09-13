@@ -38,7 +38,7 @@
       <!-- 参与人员表格 -->
       <el-table :data="participants" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="project_id" label="项目ID" width="100" />
+        <!-- <el-table-column prop="project_id" label="项目ID" width="100" /> -->
         <el-table-column prop="project_title" label="项目名称" min-width="200">
           <template #default="{ row }">
             <a href="javascript:void(0)" class="project-title-link" @click="showProjectDetail(row.project_id)">
@@ -46,7 +46,7 @@
             </a>
           </template>
         </el-table-column>
-        <el-table-column prop="staff_id" label="员工ID" width="100" />
+        <!-- <el-table-column prop="staff_id" label="员工ID" width="100" /> -->
         <el-table-column prop="staff_name" label="员工姓名" width="120" />
         <el-table-column prop="staff_department" label="所属部门" width="150" />
         <el-table-column prop="role_display" label="角色" width="100">
@@ -426,13 +426,46 @@ const submitForm = async () => {
   try {
     await formRef.value.validate();
     console.log('formData:', formData);
+    
+    // 检查是否是编辑操作且修改了项目或员工
+    const isEditingDifferentProjectOrStaff = currentParticipant.value && 
+      (formData.project_id !== currentParticipant.value.project_id || 
+       formData.staff_id !== currentParticipant.value.staff_id);
+    
+    // 新增操作或编辑时修改了项目/员工，需要检查重复
+    if (!currentParticipant.value || isEditingDifferentProjectOrStaff) {
+      // 检查员工是否已参与该项目
+      const isParticipated = participants.value.some(
+        item => item.project_id === formData.project_id && 
+                item.staff_id === formData.staff_id &&
+                // 排除当前正在编辑的记录
+                (!currentParticipant.value || item.id !== currentParticipant.value.id)
+      );
+      
+      if (isParticipated) {
+        ElMessage.error('该员工已参与此项目');
+        return;
+      }
+    }
+    
+    // 创建一个新对象，用于提交，避免修改原始formData
+    const submitData = { ...formData };
+    
+    // 格式化日期字段为ISO字符串格式 (YYYY-MM-DD)
+    if (submitData.join_date) {
+      submitData.join_date = new Date(submitData.join_date).toISOString().split('T')[0];
+    }
+    if (submitData.leave_date) {
+      submitData.leave_date = new Date(submitData.leave_date).toISOString().split('T')[0];
+    }
+    
     if (currentParticipant.value) {
       // 更新参与人员
-      await participantApi.updateParticipant(currentParticipant.value.id, formData);
+      await participantApi.updateParticipant(currentParticipant.value.id, submitData);
       ElMessage.success('参与人员更新成功');
     } else {
       // 创建参与人员
-      await participantApi.createParticipant(formData);
+      await participantApi.createParticipant(submitData);
       ElMessage.success('参与人员创建成功');
     }
     
@@ -442,8 +475,13 @@ const submitForm = async () => {
     const axiosError = error as any;
     const errorMessage = axiosError.response?.data?.detail || axiosError.message || '操作失败';
     
-    // 只记录错误但不显示给用户
-    console.error('提交表单失败:', errorMessage);
+    // 处理后端返回的"该员工已参与此项目"错误
+    if (errorMessage.includes('该员工已参与此项目')) {
+      ElMessage.error('该员工已参与此项目');
+    } else {
+      // 只记录错误但不显示给用户
+      console.error('提交表单失败:', errorMessage);
+    }
   }
 };
 

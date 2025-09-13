@@ -338,3 +338,35 @@ class ProjectStaff(models.Model):
     @property
     def role_display(self):
         return str(dict(ProjectStaff.ROLE_CHOICES).get(self.role, self.role))
+
+
+
+#项目文档
+class ProjectDocument(models.Model):
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        verbose_name=_("项目")
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_("文档名称")
+    )
+    file = models.FileField(
+        upload_to='project_documents/',
+        verbose_name=_("文档文件")
+    )
+    remark = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("备注")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("项目文档")
+        verbose_name_plural = _("项目文档")
+
+    def __str__(self):
+        return f"{self.name} - {self.project.title}"

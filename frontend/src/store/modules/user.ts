@@ -16,7 +16,8 @@ import {
 import { useMultiTagsStoreHook } from "./multiTags";
 import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
 
-export const useUserStore = defineStore("pure-user", {
+// 为了避免与staff混淆，修改store名称为admin-user
+export const useUserStore = defineStore("admin-user", {
   state: (): userType => ({
     // 头像
     avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "",

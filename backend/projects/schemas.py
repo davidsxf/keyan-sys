@@ -138,3 +138,27 @@ class ProjectStaffFilter(Schema):
     staff_name: Optional[str] = None
     role: Optional[str] = None
   
+
+
+#项目文档
+class ProjectDocumentIn(Schema):
+    project_id: int
+    name: str
+    file: str
+    remark: Optional[str] = None
+
+
+class ProjectDocumentOut(Schema):
+    id: int
+    project_id: int
+    project_title: Optional[str] = None
+    name: str
+    file: str
+    remark: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ProjectDocumentFilter(Schema):
+    project_id: Optional[int] = None
+    name: Optional[str] = None

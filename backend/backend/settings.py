@@ -38,14 +38,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'ninja',
-    # 'corsheaders',
+    'corsheaders',  # 添加这一行
     'users',
     'core',
     'projects',
+    'import_export',
 
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # 添加到最前面
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -54,6 +56,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# 添加CORS配置
+CORS_ALLOW_ALL_ORIGINS = True  # 开发环境可以这样设置，生产环境应限制特定域名
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -109,9 +115,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -127,3 +133,14 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# 配置 django-import-export 支持的格式
+IMPORT_EXPORT_FORMATS = (
+    'import_export.formats.base_formats.CSV',
+    'import_export.formats.base_formats.XLS',
+    'import_export.formats.base_formats.XLSX',
+    'import_export.formats.base_formats.TSV',
+    'import_export.formats.base_formats.ODS',
+    'import_export.formats.base_formats.JSON',
+)

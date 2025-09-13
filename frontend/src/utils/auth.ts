@@ -1,4 +1,5 @@
-import Cookies from "js-cookie";
+// 导入Cookies模块
+import Cookies from 'js-cookie';
 import { useUserStoreHook } from "@/store/modules/user";
 import { storageLocal, isString, isIncludeAllChildren } from "@pureadmin/utils";
 

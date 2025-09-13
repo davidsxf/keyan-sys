@@ -34,6 +34,24 @@ export default {
         showParent: true
       }
     },
+    {
+      path: "/project/document",
+      name: "Document",
+      component: () => import("@/views/project/document.vue"),
+      meta: {
+        title: "项目文档",
+        showParent: true
+      }
+    },
+    {
+      path: "/project/stats",
+      name: "Stats",
+      component: () => import("@/views/project/stats.vue"),
+      meta: {
+        title: "项目统计",
+        showParent: true
+      }
+    },
     // {
     //   path: "/base/org",
     //   name: "Org",

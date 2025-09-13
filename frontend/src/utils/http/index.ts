@@ -14,6 +14,9 @@ import NProgress from "../progress";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 
+// 添加API_BASE定义
+const API_BASE = '/api/v1';
+
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
@@ -72,8 +75,10 @@ class PureHttp {
           PureHttp.initConfig.beforeRequestCallback(config);
           return config;
         }
-        /** 请求白名单，放置一些不需要`token`的接口（通过设置请求白名单，防止`token`过期后再请求造成的死循环问题） */
-        const whiteList = ["/refresh-token", "/login"];
+        // 修改请求拦截器中的白名单，确保它与后端API路径匹配
+        const whiteList = [`${API_BASE}/login`, `${API_BASE}/refresh-token`];
+        
+        // 确保formatToken函数正确格式化token
         return whiteList.some(url => config.url.endsWith(url))
           ? config
           : new Promise(resolve => {
