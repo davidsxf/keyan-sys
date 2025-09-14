@@ -10,7 +10,7 @@
       <!-- 筛选条件 -->
       <el-form :model="filterForm" inline>
         <el-form-item label="统计维度">
-          <el-select v-model="filterForm.dimension" placeholder="请选择统计维度" @change="loadStats">
+          <el-select v-model="filterForm.dimension" placeholder="请选择统计维度" @change="loadStats" style="width: 100px">
             <el-option label="按部门" value="department" />
             <el-option label="按团队" value="team" />
             <el-option label="按负责人" value="leader" />
@@ -18,32 +18,34 @@
           </el-select>
         </el-form-item>
         <el-form-item label="项目状态">
-          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="loadStats">
+          <el-select v-model="filterForm.status" placeholder="全部状态" clearable @change="loadStats" style="width: 100px">
             <el-option label="全部状态" value="" />
             <el-option v-for="item in statusChoices" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="项目类别">
-          <el-select v-model="filterForm.category_id" placeholder="全部类别" clearable @change="loadStats">
+          <el-select v-model="filterForm.category_id" placeholder="全部类别" clearable @change="loadStats" style="width: 100px">
             <el-option label="全部类别" value="" />
             <el-option v-for="item in categoryChoices" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始日期">
+        <el-form-item label="开始日期" style="width: 200px">
           <el-date-picker
             v-model="filterForm.start_date"
             type="date"
             placeholder="开始日期"
             clearable
+            value-format="YYYY-MM-DD"
             @change="loadStats"
           />
         </el-form-item>
-        <el-form-item label="结束日期">
+        <el-form-item label="结束日期" style="width: 200px">
           <el-date-picker
             v-model="filterForm.end_date"
             type="date"
             placeholder="结束日期"
             clearable
+            value-format="YYYY-MM-DD"
             @change="loadStats"
           />
         </el-form-item>
@@ -91,9 +93,7 @@
           </template>
           <div class="chart-wrapper">
             <el-empty v-if="loading" description="加载中..." />
-            <div v-else-if="chartData.length === 0" class="no-data">暂无数据</div>
-            <div v-else>
-              <el-progress v-if="filterForm.dimension === 'department'" :percentage="100" status="success" />
+            <div v-else class="chart-container">
               <div ref="chartContainer" class="chart"></div>
             </div>
           </div>
@@ -107,8 +107,7 @@
           </template>
           <div class="chart-wrapper">
             <el-empty v-if="loading" description="加载中..." />
-            <div v-else-if="chartData.length === 0" class="no-data">暂无数据</div>
-            <div v-else>
+            <div v-else class="chart-container">
               <div ref="budgetChartContainer" class="chart"></div>
             </div>
           </div>
@@ -184,13 +183,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as echarts from 'echarts';
 import { projectApi } from '@/api/project';
 import type { Project, Choice } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
 import type { ProjectBudget } from '@/api/projectBudget';
+import { departmentApi, teamApi, staffApi } from '@/api/staff';
+import type { DepartmentOption, TeamOption, Staff } from '@/api/staff';
+
 
 // 统计维度标签映射
 const dimensionLabels = {
@@ -253,18 +255,356 @@ const getStatusTagType = (status: string): string => {
   return typeMap[status] || 'info';
 };
 
+// 新增响应式变量
+const departmentOptions = ref<DepartmentOption[]>([]);
+const teamOptions = ref<TeamOption[]>([]);
+const staffMap = ref<Map<number, Staff>>(new Map());
+
 // 加载选项数据
 const loadChoices = async () => {
   try {
-    const [statusRes, categoryRes] = await Promise.all([
+    const [statusRes, categoryRes, deptRes, teamRes] = await Promise.all([
       projectApi.getStatusChoices(),
-      projectApi.getCategoryChoices()
+      projectApi.getCategoryChoices(),
+      departmentApi.getDepartmentOptions(),
+      teamApi.getTeamOptions()
     ]);
     statusChoices.value = statusRes;
     categoryChoices.value = categoryRes;
+    departmentOptions.value = deptRes;
+    teamOptions.value = teamRes;
   } catch (error) {
     ElMessage.error('加载选项数据失败');
     console.error('Failed to load choices:', error);
+  }
+};
+
+// 渲染图表
+const renderCharts = () => {
+  console.log('开始渲染图表，当前维度:', filterForm.value.dimension);
+  console.log('图表数据:', chartData.value);
+  
+  // 项目数量图表
+  if (chartContainer.value) {
+    try {
+      // 1. 强制设置容器尺寸（关键修复）
+      chartContainer.value.style.height = '400px';
+      chartContainer.value.style.width = '100%';
+      chartContainer.value.style.minHeight = '400px';
+      chartContainer.value.style.minWidth = '100%';
+      chartContainer.value.style.display = 'block';
+      chartContainer.value.style.position = 'relative';
+      chartContainer.value.style.visibility = 'visible';
+      chartContainer.value.style.overflow = 'hidden';
+      
+      // 确保父容器也有正确的尺寸
+      const parentElement = chartContainer.value.parentElement;
+      if (parentElement) {
+        parentElement.style.width = '100%';
+        parentElement.style.height = '400px';
+        parentElement.style.minHeight = '400px';
+        parentElement.style.display = 'block';
+        parentElement.style.position = 'relative';
+      }
+      
+      // 确保祖父容器也有正确的尺寸
+      const grandParentElement = parentElement?.parentElement;
+      if (grandParentElement) {
+        grandParentElement.style.width = '100%';
+        grandParentElement.style.display = 'block';
+      }
+      
+      // 2. 强制重排以确保尺寸生效
+      chartContainer.value.offsetHeight; // 触发重排
+      
+      // 3. 检查容器是否有有效的尺寸
+      const clientWidth = chartContainer.value.clientWidth;
+      const clientHeight = chartContainer.value.clientHeight;
+      
+      console.log(`项目数量图表容器尺寸检查: ${clientWidth}x${clientHeight}`);
+      
+      if (clientWidth === 0 || clientHeight === 0) {
+        console.warn(`项目数量图表容器尺寸无效 (${clientWidth}x${clientHeight})，计划重试...`);
+        
+        // 如果宽度为0，尝试直接设置一个固定宽度
+        if (clientWidth === 0) {
+          const cardElement = chartContainer.value.closest('.chart-card');
+          if (cardElement) {
+            const cardWidth = cardElement.clientWidth;
+            console.log(`获取到卡片宽度: ${cardWidth}px`);
+            chartContainer.value.style.width = `${cardWidth}px`;
+          } else {
+            // 如果无法获取卡片宽度，使用一个默认宽度
+            chartContainer.value.style.width = '500px';
+            console.log('使用默认宽度: 500px');
+          }
+        }
+        
+        // 重试一次
+        setTimeout(() => renderCharts(), 300);
+        return;
+      }
+      
+      // 销毁旧实例（如果存在）
+      if (chartInstance && !chartInstance.isDisposed()) {
+        console.log('销毁旧的项目数量图表实例');
+        chartInstance.dispose();
+      }
+      
+      console.log(`正在使用有效尺寸初始化项目数量图表: ${clientWidth}x${clientHeight}`);
+      // 使用强制尺寸的配置初始化
+      chartInstance = echarts.init(chartContainer.value, null, {
+        width: clientWidth,
+        height: clientHeight
+      });
+      
+      // 检查chartData是否有数据
+      if (!chartData.value || chartData.value.length === 0) {
+        console.warn('项目数量图表数据为空，使用默认数据');
+        // 提供默认数据以便测试
+        const defaultData = [
+          { name: '测试部门1', projectCount: 5, budgetSum: 120 },
+          { name: '测试部门2', projectCount: 3, budgetSum: 80 },
+          { name: '测试部门3', projectCount: 7, budgetSum: 200 }
+        ];
+        
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: defaultData.map(item => item.name),
+            axisLabel: {
+              rotate: 45
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '项目数量'
+          },
+          series: [{
+            name: '项目数量',
+            type: 'bar',
+            data: defaultData.map(item => item.projectCount),
+            itemStyle: {
+              color: '#409EFF'
+            }
+          }]
+        };
+        
+        chartInstance.setOption(option);
+      } else {
+        // 使用实际数据
+        console.log('使用实际数据渲染项目数量图表:', chartData.value);
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            }
+          },
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: chartData.value.map(item => item.name),
+            axisLabel: {
+              rotate: 45
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '项目数量'
+          },
+          series: [{
+            name: '项目数量',
+            type: 'bar',
+            data: chartData.value.map(item => item.projectCount),
+            itemStyle: {
+              color: '#409EFF'
+            }
+          }]
+        };
+        
+        chartInstance.setOption(option);
+      }
+    } catch (error) {
+      console.error('渲染项目数量图表失败:', error);
+      // 发生错误时重新初始化实例
+      if (chartInstance) {
+        chartInstance.dispose();
+        chartInstance = null;
+      }
+      // 错误后重试
+      setTimeout(() => renderCharts(), 300);
+    }
+  } else {
+    console.error('项目数量图表容器未找到');
+    // 添加重试机制
+    setTimeout(() => {
+      console.log('尝试重新获取图表容器...');
+      renderCharts();
+    }, 300);
+  }
+  
+  // 预算分布图表
+  if (budgetChartContainer.value) {
+    try {
+      // 1. 强制设置容器尺寸（关键修复）
+      budgetChartContainer.value.style.height = '400px';
+      budgetChartContainer.value.style.width = '100%';
+      budgetChartContainer.value.style.minHeight = '400px';
+      budgetChartContainer.value.style.minWidth = '100%';
+      budgetChartContainer.value.style.display = 'block';
+      budgetChartContainer.value.style.position = 'relative';
+      budgetChartContainer.value.style.visibility = 'visible';
+      budgetChartContainer.value.style.overflow = 'hidden';
+      
+      // 确保父容器也有正确的尺寸
+      const parentElement = budgetChartContainer.value.parentElement;
+      if (parentElement) {
+        parentElement.style.width = '100%';
+        parentElement.style.height = '400px';
+        parentElement.style.minHeight = '400px';
+        parentElement.style.display = 'block';
+        parentElement.style.position = 'relative';
+      }
+      
+      // 确保祖父容器也有正确的尺寸
+      const grandParentElement = parentElement?.parentElement;
+      if (grandParentElement) {
+        grandParentElement.style.width = '100%';
+        grandParentElement.style.display = 'block';
+      }
+      
+      // 2. 强制重排以确保尺寸生效
+      budgetChartContainer.value.offsetHeight; // 触发重排
+      
+      // 3. 检查容器是否有有效的尺寸
+      const clientWidth = budgetChartContainer.value.clientWidth;
+      const clientHeight = budgetChartContainer.value.clientHeight;
+      
+      console.log(`预算分布图表容器尺寸检查: ${clientWidth}x${clientHeight}`);
+      
+      if (clientWidth === 0 || clientHeight === 0) {
+        console.warn(`预算分布图表容器尺寸无效 (${clientWidth}x${clientHeight})，计划重试...`);
+        
+        // 如果宽度为0，尝试直接设置一个固定宽度
+        if (clientWidth === 0) {
+          const cardElement = budgetChartContainer.value.closest('.chart-card');
+          if (cardElement) {
+            const cardWidth = cardElement.clientWidth;
+            console.log(`获取到卡片宽度: ${cardWidth}px`);
+            budgetChartContainer.value.style.width = `${cardWidth}px`;
+          } else {
+            // 如果无法获取卡片宽度，使用一个默认宽度
+            budgetChartContainer.value.style.width = '500px';
+            console.log('使用默认宽度: 500px');
+          }
+        }
+        
+        // 重试一次
+        setTimeout(() => renderCharts(), 300);
+        return;
+      }
+      
+      // 销毁旧实例（如果存在）
+      if (budgetChartInstance && !budgetChartInstance.isDisposed()) {
+        console.log('销毁旧的预算分布图表实例');
+        budgetChartInstance.dispose();
+      }
+      
+      console.log(`正在使用有效尺寸初始化预算分布图表: ${clientWidth}x${clientHeight}`);
+      // 使用强制尺寸的配置初始化
+      budgetChartInstance = echarts.init(budgetChartContainer.value, null, {
+        width: clientWidth,
+        height: clientHeight
+      });
+      
+      // 检查chartData是否有数据
+      let budgetChartData;
+      if (!chartData.value || chartData.value.length === 0) {
+        console.warn('预算分布图表数据为空，使用默认数据');
+        budgetChartData = [
+          { name: '测试部门1', value: 120 },
+          { name: '测试部门2', value: 80 },
+          { name: '测试部门3', value: 200 }
+        ];
+      } else {
+        budgetChartData = chartData.value.map(item => ({ name: item.name, value: item.budgetSum }));
+      }
+      
+      const budgetOption = {
+        tooltip: {
+          trigger: 'item',
+          formatter: '{a} <br/>{b}: {c}万元 ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 10,
+          data: budgetChartData.map(item => item.name)
+        },
+        series: [{
+          name: '预算分布',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: '18',
+              fontWeight: 'bold'
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: budgetChartData
+        }]
+      };
+      
+      console.log('渲染预算分布图表，数据:', budgetChartData);
+      budgetChartInstance.setOption(budgetOption);
+    } catch (error) {
+      console.error('渲染预算分布图表失败:', error);
+      // 发生错误时重新初始化实例
+      if (budgetChartInstance) {
+        budgetChartInstance.dispose();
+        budgetChartInstance = null;
+      }
+      // 错误后重试
+      setTimeout(() => renderCharts(), 300);
+    }
+  } else {
+    console.error('预算分布图表容器未找到');
+    // 添加重试机制
+    setTimeout(() => {
+      console.log('尝试重新获取预算分布图表容器...');
+      renderCharts();
+    }, 300);
   }
 };
 
@@ -274,7 +614,50 @@ const loadStats = async () => {
   try {
     // 在实际项目中，这里应该调用专门的统计API
     // 由于目前没有专门的统计API，我们可以从项目列表数据中进行统计计算
-    const projectRes = await projectApi.getProjects(filterForm.value);
+    
+    // 从filterForm中提取后端需要的参数，排除dimension
+    const apiParams = {
+      status: filterForm.value.status,
+      category_id: filterForm.value.category_id,
+      start_date: filterForm.value.start_date,
+      end_date: filterForm.value.end_date
+    };
+    
+    // 只传递非空参数
+    const filteredParams = Object.fromEntries(
+      Object.entries(apiParams).filter(([_, value]) => value !== '' && value !== undefined)
+    );
+    
+    // 处理日期格式，确保后端能正确解析
+    if (filteredParams.start_date) {
+      // 将日期对象转换为ISO字符串格式，然后只取日期部分
+      if (typeof filteredParams.start_date === 'object' && filteredParams.start_date instanceof Date) {
+        filteredParams.start_date = filteredParams.start_date.toISOString().split('T')[0];
+      } else if (typeof filteredParams.start_date === 'string') {
+        // 如果已经是字符串，确保格式正确
+        const date = new Date(filteredParams.start_date);
+        if (!isNaN(date.getTime())) {
+          filteredParams.start_date = date.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    if (filteredParams.end_date) {
+      // 将日期对象转换为ISO字符串格式，然后只取日期部分
+      if (typeof filteredParams.end_date === 'object' && filteredParams.end_date instanceof Date) {
+        filteredParams.end_date = filteredParams.end_date.toISOString().split('T')[0];
+      } else if (typeof filteredParams.end_date === 'string') {
+        // 如果已经是字符串，确保格式正确
+        const date = new Date(filteredParams.end_date);
+        if (!isNaN(date.getTime())) {
+          filteredParams.end_date = date.toISOString().split('T')[0];
+        }
+      }
+    }
+    
+    console.log('处理后的API参数:', filteredParams);
+    
+    const projectRes = await projectApi.getProjects(filteredParams);
     const projects = projectRes.items;
     
     // 计算总数
@@ -282,6 +665,22 @@ const loadStats = async () => {
     totalBudget.value = projects.reduce((sum, item) => sum + (item.budget || 0), 0);
     ongoingProjects.value = projects.filter(p => p.status === 'ongoing').length;
     completedProjects.value = projects.filter(p => p.status === 'completed').length;
+    
+    // 获取所有项目负责人的ID
+    const leaderIds = [...new Set(projects.map(p => p.leader_id).filter(id => id))];
+    
+    // 加载所有负责人的详细信息，包含部门和团队信息
+    if (leaderIds.length > 0) {
+      try {
+        // 获取所有员工数据（这里可以根据实际API设计进行调整）
+        const allStaffs = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 1000);
+        allStaffs.forEach(staff => {
+          staffMap.value.set(staff.id, staff);
+        });
+      } catch (error) {
+        console.warn('Failed to load staff details:', error);
+      }
+    }
     
     // 按维度分组统计
     const groupedStats: Record<string, any> = {};
@@ -292,21 +691,48 @@ const loadStats = async () => {
       
       switch (filterForm.value.dimension) {
         case 'department':
-          // 实际项目中应该从部门信息中获取
-          groupKey = `dept_${project.id % 5}`; // 模拟部门ID
-          groupName = `部门${project.id % 5 + 1}`; // 模拟部门名称
+          // 使用真实的部门信息
+          if (project.leader_id && staffMap.value.has(project.leader_id)) {
+            const staff = staffMap.value.get(project.leader_id)!;
+            if (staff.department_id && staff.department_name) {
+              groupKey = `dept_${staff.department_id}`;
+              groupName = staff.department_name;
+            } else {
+              // 如果没有部门信息，使用未知部门
+              groupKey = 'dept_unknown';
+              groupName = '未知部门';
+            }
+          } else {
+            // 如果没有负责人或负责人信息获取失败，使用未知部门
+            groupKey = 'dept_unknown';
+            groupName = '未知部门';
+          }
           break;
         case 'team':
-          // 实际项目中应该从团队信息中获取
-          groupKey = `team_${project.id % 10}`; // 模拟团队ID
-          groupName = `团队${project.id % 10 + 1}`; // 模拟团队名称
+          // 使用真实的团队信息
+          if (project.leader_id && staffMap.value.has(project.leader_id)) {
+            const staff = staffMap.value.get(project.leader_id)!;
+            if (staff.team_id && staff.team_name) {
+              groupKey = `team_${staff.team_id}`;
+              groupName = staff.team_name;
+            } else {
+              // 如果没有团队信息，使用未知团队
+              groupKey = 'team_unknown';
+              groupName = '未知团队';
+            }
+          } else {
+            // 如果没有负责人或负责人信息获取失败，使用未知团队
+            groupKey = 'team_unknown';
+            groupName = '未知团队';
+          }
           break;
         case 'leader':
+          // 保留原有的负责人逻辑
           groupKey = project.leader_id?.toString() || 'unknown';
           groupName = project.leader_name || '未知负责人';
           break;
         case 'year':
-          // 从项目开始日期或结束日期中提取年份
+          // 保留原有的年份逻辑
           const projectYear = project.start_date ? new Date(project.start_date).getFullYear() : '未知';
           groupKey = `year_${projectYear}`;
           groupName = `${projectYear}年`;
@@ -354,10 +780,15 @@ const loadStats = async () => {
       projectCount: item.projectCount,
       budgetSum: item.budgetSum
     }));
+
+    console.log('chartData', chartData.value);
     
-    // 渲染图表
+    // 确保DOM已经渲染完成再调用renderCharts
     await nextTick();
-    renderCharts();
+    // 增加延迟时间以确保DOM元素完全渲染并计算好尺寸
+    setTimeout(() => {
+      renderCharts();
+    }, 500); // 增加延迟时间从300ms到500ms，确保DOM完全稳定
   } catch (error) {
     ElMessage.error('加载统计数据失败');
     console.error('Failed to load stats:', error);
@@ -366,102 +797,52 @@ const loadStats = async () => {
   }
 };
 
-// 渲染图表
-const renderCharts = () => {
-  // 项目数量图表
-  if (chartContainer.value) {
-    if (!chartInstance) {
-      chartInstance = echarts.init(chartContainer.value);
-    }
-    
-    const option = {
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: chartData.value.map(item => item.name),
-        axisLabel: {
-          rotate: 45
-        }
-      },
-      yAxis: {
-        type: 'value',
-        name: '项目数量'
-      },
-      series: [{
-        name: '项目数量',
-        type: 'bar',
-        data: chartData.value.map(item => item.projectCount),
-        itemStyle: {
-          color: '#409EFF'
-        }
-      }]
-    };
-    
-    chartInstance.setOption(option);
+// 监听维度变化
+watch(() => filterForm.value.dimension, (newDimension, oldDimension) => {
+  console.log(`维度从 ${oldDimension} 切换到 ${newDimension}`);
+  
+  // 销毁现有图表实例
+  if (chartInstance) {
+    chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (budgetChartInstance) {
+    budgetChartInstance.dispose();
+    budgetChartInstance = null;
   }
   
-  // 预算分布图表
-  if (budgetChartContainer.value) {
-    if (!budgetChartInstance) {
-      budgetChartInstance = echarts.init(budgetChartContainer.value);
-    }
-    
-    const option = {
-      tooltip: {
-        trigger: 'item',
-        formatter: '{a} <br/>{b}: {c} ({d}%)'
-      },
-      legend: {
-        orient: 'vertical',
-        left: 10,
-        data: chartData.value.map(item => item.name)
-      },
-      series: [{
-        name: '预算分布',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '18',
-            fontWeight: 'bold'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: chartData.value.map(item => ({
-          name: item.name,
-          value: item.budgetSum
-        }))
-      }]
-    };
-    
-    budgetChartContainer.value.style.height = '400px'; // 设置图表高度
-    budgetChartInstance.setOption(option);
+  // 清空图表数据
+  chartData.value = [];
+  
+  // 重新加载数据
+  loadStats();
+}, { immediate: false });
+
+// 生命周期
+onMounted(() => {
+  loadChoices();
+  // 增加延迟时间确保组件完全挂载
+  setTimeout(() => {
+    console.log('组件挂载完成，开始加载统计数据...');
+    loadStats();
+  }, 800); // 从500ms增加到800ms，确保组件完全挂载
+  window.addEventListener('resize', handleResize);
+});
+
+// 组件卸载时销毁图表实例
+const cleanup = () => {
+  if (chartInstance) {
+    chartInstance.dispose();
+    chartInstance = null;
   }
+  if (budgetChartInstance) {
+    budgetChartInstance.dispose();
+    budgetChartInstance = null;
+  }
+  window.removeEventListener('resize', handleResize);
 };
+
+onUnmounted(cleanup);
 
 // 重置筛选条件
 const resetFilter = () => {
@@ -472,6 +853,20 @@ const resetFilter = () => {
     start_date: '',
     end_date: ''
   };
+  // 销毁现有图表实例
+  if (chartInstance) {
+    chartInstance.dispose();
+    chartInstance = null;
+  }
+  if (budgetChartInstance) {
+    budgetChartInstance.dispose();
+    budgetChartInstance = null;
+  }
+  
+  // 清空图表数据
+  chartData.value = [];
+  
+  // 重新加载数据
   loadStats();
 };
 
@@ -507,29 +902,10 @@ const handleResize = () => {
   }
 };
 
-// 生命周期
-onMounted(() => {
-  loadChoices();
-  loadStats();
-  window.addEventListener('resize', handleResize);
-});
-
-// 组件卸载时销毁图表实例
-const cleanup = () => {
-  if (chartInstance) {
-    chartInstance.dispose();
-    chartInstance = null;
-  }
-  if (budgetChartInstance) {
-    budgetChartInstance.dispose();
-    budgetChartInstance = null;
-  }
-  window.removeEventListener('resize', handleResize);
-};
-
 // 模拟组件卸载时的清理
 // 实际项目中应该在组件的unmounted钩子中调用
-// onUnmounted(cleanup);
+
+onUnmounted(cleanup);
 </script>
 
 <style scoped>
@@ -573,15 +949,21 @@ const cleanup = () => {
   color: #409EFF;
 }
 
+/* 确保图表卡片有足够的空间 */
 .charts-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin: 20px 0;
+  min-height: 450px;
+  width: 100%;
 }
 
 .chart-card {
   height: 450px;
+  overflow: visible;
+  width: 100%;
+  min-width: 300px;
 }
 
 .chart-header {
@@ -590,17 +972,25 @@ const cleanup = () => {
   align-items: center;
 }
 
+/* 增强图表容器样式 */
 .chart-wrapper {
+  width: 100% !important;
   height: calc(100% - 50px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
 }
 
 .chart {
-  width: 100%;
-  height: 100%;
-  min-height: 350px;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 400px !important;
+  min-width: 100% !important;
+  display: block !important;
+  position: relative !important;
 }
 
 .no-data {

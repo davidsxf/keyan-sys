@@ -17,6 +17,15 @@ export default {
       }
     },
     {
+      path: "/project/projectDetail",
+      name: "ProjectDetail",
+      component: () => import("@/views/project/projectDetail.vue"),
+      meta: {
+        title: "项目明细",
+        showParent: true
+      }
+    },
+    {
       path: "/project/budget",
       name: "Budget",
       component: () => import("@/views/project/budget.vue"),

@@ -140,11 +140,15 @@ class ProjectStaffFilter(Schema):
   
 
 
-#项目文档
+# Import necessary modules
+from ninja import Schema, UploadedFile
+from typing import Optional
+
+
 class ProjectDocumentIn(Schema):
     project_id: int
     name: str
-    file: str
+    file: UploadedFile  # Change from str to UploadedFile
     remark: Optional[str] = None
 
 

@@ -362,9 +362,10 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
         if filters.name:
             queryset = queryset.filter(name__icontains=filters.name)
     
+    # 修复annotate方法中的错误，直接使用F表达式而不是嵌套在Value中
     return queryset.annotate(
         project_title=Case(
-            When(project__title__isnull=False, then=Value(F('project__title'))),
+            When(project__title__isnull=False, then=F('project__title')),
             default=Value(''),
             output_field=CharField()
         )
