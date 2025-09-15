@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import date, datetime
-from ninja import Schema
+from ninja import Schema,UploadedFile
 from django.utils.translation import gettext_lazy as _
 
 
@@ -140,15 +140,9 @@ class ProjectStaffFilter(Schema):
   
 
 
-# Import necessary modules
-from ninja import Schema, UploadedFile
-from typing import Optional
-
 
 class ProjectDocumentIn(Schema):
-    project_id: int
     name: str
-    file: UploadedFile
     remark: Optional[str] = None
 
 

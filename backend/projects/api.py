@@ -1,14 +1,15 @@
 # api.py
 # 在文件顶部添加HttpError的导入
-from ninja import Router
+from ninja import Router, File, Form
 from ninja import NinjaAPI, Query
 from ninja.pagination import paginate, PageNumberPagination
 from typing import List
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from ninja.errors import HttpError  # 添加这行导入
+from django.http import JsonResponse  # 添加JsonResponse导入
 from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff,ProjectDocument
-from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter,ProjectDocumentIn,ProjectDocumentOut,ProjectDocumentFilter
+from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter
 
 
 api = NinjaAPI(title="项目管理API", version="1.0.0")
@@ -344,12 +345,13 @@ def list_project_participants_by_project(request, project_id: int):
 # 项目文档相关API
 
 
-from projects.schemas import ProjectDocumentIn, ProjectDocumentOut, ProjectDocumentFilter
+from .schemas import ProjectDocumentIn, ProjectDocumentOut, ProjectDocumentFilter
 from django.db.models import Case, When, Value, CharField
-from django.db.models.functions import Coalesce
-from django.db.models import F, Q
+from django.db.models import F
 
-@router.get("/{project_id}/documents", response=List[ProjectDocumentOut])
+
+
+@router.get("{project_id}/documents", response=List[ProjectDocumentOut])
 @paginate(CustomPagination)
 def list_project_documents(request, project_id: int, filters: ProjectDocumentFilter = Query(...)):
     """获取指定项目的所有文档"""
@@ -370,29 +372,37 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
     )
 
 
-@router.post("/documents", response=ProjectDocumentOut)
-def create_project_document(request):
-    """创建项目文档"""
-    # 直接从request中获取FormData数据
-    project_id = request.POST.get("project_id")
-    name = request.POST.get("name")
-    file = request.FILES.get("file")
-    remark = request.POST.get("remark")
+@router.post("/documents/{project_id}/documents", response=ProjectDocumentOut)
+def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...),file=File(...)):
     
-    # 验证必填字段
-    if not project_id or not name or not file:
-        raise HttpError(400, "项目ID、文档名称和文件不能为空")
+    print('create_project_document params:', project_id)
+    # 添加更详细的调试信息
+    print('Request data received:', request.POST)
+    print('Files received:', request.FILES)
     
-    project = get_object_or_404(Project, id=project_id)
+    # 1. 验证项目是否存在
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return JsonResponse({"error": "项目不存在"}, status=404)
     
+    # # 2. 验证文件类型
+    valid_extensions = ['.pdf', '.docx', '.xlsx', '.txt']
+    if not any(file.name.endswith(ext) for ext in valid_extensions):
+        return JsonResponse({"error": "仅支持PDF、DOCX、XLSX和TXT文件"}, status=400)
+    
+    # 3. 处理文件存储
     document = ProjectDocument.objects.create(
         project=project,
-        name=name,
-        file=file,
-        remark=remark
+        name=data.name,
+        file=file,  # 直接将UploadedFile对象赋值给FileField
+        remark=data.remark
     )
+    
     return document
 
+
+    
 @router.get("/documents/{document_id}", response=ProjectDocumentOut)
 def get_project_document(request, document_id: int):
     """获取项目文档详情"""

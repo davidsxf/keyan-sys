@@ -439,6 +439,7 @@ const staffLoading = ref(false);
 
 // 文档数据
 const documents = ref<ProjectDocumentOut[]>([]);
+const file = ref<File>(null);
 const documentDataLoading = ref(false);
 const documentDialogVisible = ref(false);
 const documentFormRef = ref<any>(null);
@@ -556,7 +557,6 @@ const participantFormRules = {
 // 文档表单数据
 const documentFormData = reactive<Partial<ProjectDocumentIn>>({
   name: '',
-  file: null as File | null,
   remark: ''
 });
 
@@ -566,9 +566,9 @@ const documentFormRules = {
     { required: true, message: '请输入文档名称', trigger: 'blur' },
     { min: 1, max: 100, message: '文档名称长度应在1到100个字符之间', trigger: 'blur' }
   ],
-  file: [
-    { required: true, message: '请选择文件', trigger: 'change' }
-  ]
+  // file: [
+  //   { required: true, message: '请选择文件', trigger: 'change' }
+  // ]
 };
 
 // 表单标题计算属性
@@ -1007,6 +1007,7 @@ const submitParticipantForm = async () => {
   }
 };
 
+
 // 显示文档对话框
 const showDocumentDialog = () => {
   if (!selectedProjectId.value) {
@@ -1016,7 +1017,9 @@ const showDocumentDialog = () => {
   
   currentDocument.value = null;
   documentFormData.name = '';
-  documentFormData.file = null;
+  // documentFormData.file = null;
+  // file 上传文件
+  file.value = null;
   documentFormData.remark = '';
   
   if (documentFormRef.value) {
@@ -1065,45 +1068,46 @@ const deleteDocument = async (document: ProjectDocumentOut) => {
 };
 
 // 处理文件选择
-const handleFileChange = (file: any) => {
-  documentFormData.file = file.raw;
+const handleFileChange = (uploadFile: any) => {
+  file.value = uploadFile.raw;
+  
 };
 
 // 提交文档表单
 const submitDocumentForm = async () => {
-  if (!documentFormRef.value || !selectedProjectId.value) return;
+  if (!file.value) {
+    ElMessage.warning('请选择文件');
+    return;
+  }
   
   try {
     await documentFormRef.value.validate();
     
-    // 创建FormData对象用于文件上传
-    const form = new FormData();
-    console.log('prepareDocumentForm', documentFormData);
-    form.append('name', documentFormData.name || '');
-    if (documentFormData.file) {
-      form.append('file', documentFormData.file);
-    }
-    if (documentFormData.remark) {
-      form.append('remark', documentFormData.remark);
-    }
-
-    console.log('submitDocumentForm', selectedProjectId.value, form);
+    console.log('submitDocumentForm', selectedProjectId.value, documentFormData);
     
     if (currentDocument.value) {
-      // 更新文档 - 修正参数
-      await documentApi.updateProjectDocument(currentDocument.value.id, form);
+      // 更新文档
+      // await documentApi.updateProjectDocument(currentDocument.value.id, documentFormData);
       ElMessage.success('文档更新成功');
     } else {
-      // 创建文档 - 修正使用form对象
-      await documentApi.createProjectDocument(selectedProjectId.value, form);
+      // 创建文档 - 传递正确的 file.value
+      console.log('handleFileChange', file.value);
+      await documentApi.createProjectDocument(selectedProjectId.value, documentFormData, file.value);
       ElMessage.success('文档创建成功');
     }
     
     documentDialogVisible.value = false;
     loadProjectDocuments();
   } catch (error) {
-    ElMessage.error(currentDocument.value ? '文档更新失败' : '文档创建失败');
     console.error('提交表单失败:', error);
+    // 尝试获取更具体的错误信息
+    const axiosError = error as any;
+    const errorMessage = axiosError.response?.data?.error || 
+                        axiosError.response?.data?.detail || 
+                        axiosError.message || 
+                        (currentDocument.value ? '文档更新失败' : '文档创建失败');
+    
+    ElMessage.error(errorMessage);
   }
 };
 
