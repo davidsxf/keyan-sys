@@ -144,3 +144,12 @@ IMPORT_EXPORT_FORMATS = (
     'import_export.formats.base_formats.ODS',
     'import_export.formats.base_formats.JSON',
 )
+
+
+# 文件上传配置
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# 如果需要限制上传文件大小（可选）
+# DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+# FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB

@@ -148,7 +148,7 @@ from typing import Optional
 class ProjectDocumentIn(Schema):
     project_id: int
     name: str
-    file: UploadedFile  # Change from str to UploadedFile
+    file: UploadedFile
     remark: Optional[str] = None
 
 

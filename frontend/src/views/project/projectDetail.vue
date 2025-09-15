@@ -1078,6 +1078,7 @@ const submitDocumentForm = async () => {
     
     // 创建FormData对象用于文件上传
     const form = new FormData();
+    console.log('prepareDocumentForm', documentFormData);
     form.append('name', documentFormData.name || '');
     if (documentFormData.file) {
       form.append('file', documentFormData.file);
@@ -1085,14 +1086,16 @@ const submitDocumentForm = async () => {
     if (documentFormData.remark) {
       form.append('remark', documentFormData.remark);
     }
+
+    console.log('submitDocumentForm', selectedProjectId.value, form);
     
     if (currentDocument.value) {
-      // 更新文档
-      await documentApi.updateProjectDocument(selectedProjectId.value, currentDocument.value.id, documentFormData);
+      // 更新文档 - 修正参数
+      await documentApi.updateProjectDocument(currentDocument.value.id, form);
       ElMessage.success('文档更新成功');
     } else {
-      // 创建文档
-      await documentApi.createProjectDocument(selectedProjectId.value, documentFormData);
+      // 创建文档 - 修正使用form对象
+      await documentApi.createProjectDocument(selectedProjectId.value, form);
       ElMessage.success('文档创建成功');
     }
     

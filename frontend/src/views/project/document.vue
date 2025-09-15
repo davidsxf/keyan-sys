@@ -222,10 +222,21 @@ const submitForm = async () => {
       await documentApi.createProjectDocument(projectId, formData)
       ElMessage.success('文档创建成功')
     } else {
-      await documentApi.updateProjectDocument(projectId, currentDocumentId.value!, formData)
+      // 修正updateProjectDocument调用，只传递documentId和data
+      await documentApi.updateProjectDocument(currentDocumentId.value!, formData)
       ElMessage.success('文档更新成功')
     }
     
+    // 删除文档 - 修正deleteProjectDocument调用，只传递documentId
+    const handleDelete = async (id: number) => {
+      try {
+        await documentApi.deleteProjectDocument(id)
+        ElMessage.success('文档删除成功')
+        loadDocuments()
+      } catch (error) {
+        ElMessage.error('文档删除失败')
+      }
+    }
     dialogVisible.value = false
     loadDocuments()
   } catch (error) {

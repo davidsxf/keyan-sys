@@ -15,6 +15,7 @@ api = NinjaAPI(title="项目管理API", version="1.0.0")
 router = Router(tags=['projects'])
 
 
+
 # 自定义分页类，确保与前端参数名匹配
 class CustomPagination(PageNumberPagination):
     page_size_query_param = "size"
@@ -217,8 +218,7 @@ def get_budget_type_choices(request):
     return [{"value": choice[0], "label": choice[1]} for choice in ProjectBudgetType.choices]
 
 
-# 将router添加到api
-# api.add_router("/projects", router)
+
 
 
 
@@ -279,8 +279,6 @@ def create_project_participant(request, data: ProjectStaffIn):
     )
     
     return participant
-
-
 
 
 
@@ -372,15 +370,26 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
     )
 
 
-@router.post("/{project_id}/documents", response=ProjectDocumentOut)
-def create_project_document(request, project_id: int, data: ProjectDocumentIn):
+@router.post("/documents", response=ProjectDocumentOut)
+def create_project_document(request):
     """创建项目文档"""
+    # 直接从request中获取FormData数据
+    project_id = request.POST.get("project_id")
+    name = request.POST.get("name")
+    file = request.FILES.get("file")
+    remark = request.POST.get("remark")
+    
+    # 验证必填字段
+    if not project_id or not name or not file:
+        raise HttpError(400, "项目ID、文档名称和文件不能为空")
+    
     project = get_object_or_404(Project, id=project_id)
+    
     document = ProjectDocument.objects.create(
         project=project,
-        name=data.name,
-        file=data.file,
-        remark=data.remark
+        name=name,
+        file=file,
+        remark=remark
     )
     return document
 
@@ -392,12 +401,24 @@ def get_project_document(request, document_id: int):
 
 
 @router.put("/documents/{document_id}", response=ProjectDocumentOut)
-def update_project_document(request, document_id: int, data: ProjectDocumentIn):
+def update_project_document(request, document_id: int):
     """更新项目文档"""
     document = get_object_or_404(ProjectDocument, id=document_id)
-    document.name = data.name
-    document.file = data.file
-    document.remark = data.remark
+    
+    # 直接从request中获取FormData数据
+    name = request.POST.get("name")
+    file = request.FILES.get("file")
+    remark = request.POST.get("remark")
+    
+    # 验证必填字段
+    if not name:
+        raise HttpError(400, "文档名称不能为空")
+    
+    # 如果没有提供新文件，则不更新文件字段
+    document.name = name
+    if file:
+        document.file = file
+    document.remark = remark
     document.save()
     return document
     
