@@ -8,12 +8,37 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from ninja.errors import HttpError  # 添加这行导入
 from django.http import JsonResponse  # 添加JsonResponse导入
-from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff,ProjectDocument
-from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter
+from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff,ProjectDocument,ProjectLeaderChange
+from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter,ProjectLeaderChangeIn,ProjectLeaderChangeOut
+# 在文件顶部添加事务模块的导入
+from django.db import transaction
 
 
 api = NinjaAPI(title="项目管理API", version="1.0.0")
 router = Router(tags=['projects'])
+
+# 项目负责人变更
+@router.post("/leader-change", response=ProjectLeaderChangeOut)
+@transaction.atomic  # 添加事务装饰器确保原子性
+def create_project_leader_change(request, data: ProjectLeaderChangeIn):
+    """创建项目负责人变更并同时更新项目leader"""
+    # 1. 验证项目是否存在
+    project = get_object_or_404(Project, id=data.project_id)
+    
+    # 2. 验证新负责人是否存在
+    new_leader = get_object_or_404(Staff, id=data.leader_id)
+    
+    # 3. 记录旧负责人信息，用于记录变更历史
+    old_leader_id = project.leader.id if project.leader else None
+    
+    # 4. 更新项目的负责人
+    project.leader = new_leader
+    project.save()
+    
+    # 5. 创建项目负责人变更记录
+    project_leader_change = ProjectLeaderChange.objects.create(**data.dict())
+    
+    return project_leader_change
 
 
 
@@ -29,9 +54,6 @@ def list_projects(request, filters: ProjectFilter = Query(None)):
     # 修复select_related，将'type'改为'category'
     queryset = Project.objects.all().select_related('leader', 'category', 'source')
 
-    # 打印查询结果
-    # for project in queryset:
-    #     print(project.__dict__)
     
     # 如果提供了筛选条件，则应用它们
     if filters:
@@ -41,6 +63,8 @@ def list_projects(request, filters: ProjectFilter = Query(None)):
             queryset = queryset.filter(number__icontains=filters.number)
         if filters.status:
             queryset = queryset.filter(status=filters.status)
+        if filters.level:
+            queryset = queryset.filter(level=filters.level)
         if filters.category_id:
             queryset = queryset.filter(category_id=filters.category_id)
         if filters.type:
@@ -131,6 +155,10 @@ def get_category_choices(request):
     categories = Category.objects.all().order_by('sort_order', 'name')
     # 返回格式化的选项列表
     return [{"value": category.id, "label": category.name} for category in categories]
+
+
+
+#项目负责人变更
 
 
 #项目预算

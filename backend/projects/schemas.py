@@ -12,6 +12,7 @@ class ProjectIn(Schema):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     status: str
+    level: Optional[str] = None
     category_id: Optional[int] = None
     type: Optional[str] = None
     budget: Optional[float] = None
@@ -32,6 +33,8 @@ class ProjectOut(Schema):
     end_date: Optional[date] = None
     status: str
     status_display: str  # 状态显示值
+    level: Optional[str] = None
+    level_display: Optional[str] = None  # 等级显示值
     category_id: Optional[int] = None
     category_name: Optional[str] = None  # 类别名称
     type: Optional[str] = None  # 类型
@@ -52,6 +55,7 @@ class ProjectFilter(Schema):
     title: Optional[str] = None
     number: Optional[str] = None
     status: Optional[str] = None
+    level: Optional[str] = None
     category_id: Optional[int] = None
     type: Optional[str] = None
     leader_id: Optional[int] = None
@@ -97,7 +101,23 @@ class ProjectBudgetFilter(Schema):
     end_date: Optional[date] = None
 
 
-# 在文件末尾添加
+# 项目负责人变更
+class ProjectLeaderChangeIn(Schema):
+    project_id: int
+    leader_id: int
+    change_date: Optional[date] = None
+    remark: Optional[str] = None
+
+class ProjectLeaderChangeOut(Schema):
+    id: int
+    project_id: int
+    project_title: Optional[str] = None
+    leader_id: int
+    leader_name: Optional[str] = None
+    change_date: Optional[date] = None
+    remark: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
 
 # 项目参与人员
 class ProjectStaffIn(Schema):

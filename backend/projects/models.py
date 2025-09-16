@@ -9,10 +9,20 @@ from django.utils.translation import gettext_lazy as _
 
 # 项目状态选项
 class ProjectStatus(models.TextChoices):
-    APPROVED = "APPROVED", _("已立项")
     IN_PROGRESS = "IN_PROGRESS", _("在研")
+    COMPLETED = "COMPLETED", _("结题")
     TERMINATED = "TERMINATED", _("终止")
-    COMPLETED = "COMPLETED", _("已完成")
+
+
+
+#项目级别 ：国家级 省部级 基本科研业务费 地方其他项目 其他
+
+class ProjectLevel(models.TextChoices):
+    NATIONAL = "NATIONAL", _("国家级")
+    PROVINCIAL = "PROVINCIAL", _("省部级")
+    BASIC_RESEARCH = "BASIC_RESEARCH", _("基本科研业务费")
+    LOCAL_OTHER = "LOCAL_OTHER", _("地方其他项目")
+    OTHER = "OTHER", _("其他")
 
 
 
@@ -21,18 +31,32 @@ class ProjectStatus(models.TextChoices):
 class UndertakeType(models.TextChoices):
     HOST = "HOST", _("主持")
     PARTICIPATE = "PARTICIPATE", _("参加")
-    COLLABORATE = "COLLABORATE", _("协作")
+
 
 
 
 
 # 项目类型选项（如果不使用外键关联Category模型，可直接使用此选项）
+
 class ProjectType(models.TextChoices):
-    RESEARCH = "research", _("研究项目")
-    DEVELOPMENT = "development", _("开发项目")
-    CONSULTING = "consulting", _("咨询项目")
-    SERVICE = "service", _("服务项目")
-    OTHER = "other", _("其他项目")
+    NATIONAL_MAJOR_SCI_TECH = "NATIONAL_MAJOR_SCI_TECH", _("国家科技重大专项")
+    NATIONAL_BIO_BREEDING = "NATIONAL_BIO_BREEDING", _("国家生物育种专项")
+    NATIONAL_KEY_RD = "NATIONAL_KEY_RD", _("国家重点研发计划")
+    NATIONAL_NATURAL_SCI_FUND = "NATIONAL_NATURAL_SCI_FUND", _("国家自然科学基金")
+    SCI_TECH_INFRA_PLATFORM = "SCI_TECH_INFRA_PLATFORM", _("科技基础条件平台专项")
+    SCI_TECH_BASIC_WORK = "SCI_TECH_BASIC_WORK", _("科技基础性工作专项")
+    MODERN_AGRI_IND_TECH_SYSTEM = "MODERN_AGRI_IND_TECH_SYSTEM", _("现代农业产业技术体系")
+    SELF_FULFILLMENT = "SELF_FULFILLMENT", _("自有履职专项")
+    NATIONAL_MINISTERIAL_OTHER = "NATIONAL_MINISTERIAL_OTHER", _("国家和部级其它项")
+    STANDARD_REVISION_NATIONAL = "STANDARD_REVISION_NATIONAL", _("标准制修订项目（国标）")
+    STANDARD_REVISION_INDUSTRY = "STANDARD_REVISION_INDUSTRY", _("标准制修订项目（行标）")
+    STANDARD_REVISION_LOCAL = "STANDARD_REVISION_LOCAL", _("标准制修订项目（地标）")
+    INTERNATIONAL_COOPERATION = "INTERNATIONAL_COOPERATION", _("国际合作项目")
+    BASIC_RESEARCH_FUND = "BASIC_RESEARCH_FUND", _("基本科研业务费专项")
+    PROVINCIAL_PLAN = "PROVINCIAL_PLAN", _("省级计划项目")
+    LOCAL_OTHER_PROJECT = "LOCAL_OTHER_PROJECT", _("地方其它项目")
+    OTHER_PROJECT_PLAN = "OTHER_PROJECT_PLAN", _("其它项目计划")
+
 
 
 
@@ -62,13 +86,7 @@ class Project(models.Model):
         verbose_name=_("项目负责人")
     )
 
-#     participants = models.ManyToManyField(
-#     Staff,
-#     through='ProjectStaff',
-#     related_name='participated_projects',
-#     verbose_name=_("参与人员"),
-#     blank=True
-# )
+
     start_date = models.DateField(
         null=True, 
         blank=True,
@@ -85,6 +103,18 @@ class Project(models.Model):
         default=ProjectStatus.APPROVED,
         verbose_name=_("项目状态")
     )
+    level = models.CharField(
+        max_length=20,
+        choices=ProjectLevel.choices,
+        default=ProjectLevel.NATIONAL,
+        verbose_name=_("项目级别")
+    )
+    type = models.CharField(
+        max_length=20,
+        choices=ProjectType.choices,
+        default=ProjectType.OTHER,
+        verbose_name=_("项目类型")
+    )
     category = models.ForeignKey(
         Category,
         related_name='category_projects',
@@ -93,12 +123,7 @@ class Project(models.Model):
         on_delete=models.SET_NULL,
         verbose_name=_("项目类别")
     )
-    type = models.CharField(
-        max_length=20,
-        choices=ProjectType.choices,
-        default=ProjectType.OTHER,
-        verbose_name=_("项目类型")
-    )
+
 
     budget = models.DecimalField(
         max_digits=10, 
@@ -147,7 +172,12 @@ class Project(models.Model):
 
 
     def __str__(self):
-        return f"{self.title} ({self.number})"
+        return f"{self.title}"
+
+    @property
+    def level_display(self):
+        """Return the display name for the project level"""
+        return str(dict(ProjectLevel.choices).get(self.level, self.level))
     
     @property
     def status_display(self):
@@ -182,10 +212,42 @@ class Project(models.Model):
         return self.source.name if self.source else None
 
 
+### 项目负责人变更
+class ProjectLeaderChange(models.Model):
+    project = models.ForeignKey(
+        Project,
+        related_name='leader_changes',
+        on_delete=models.CASCADE,
+        verbose_name=_('所属项目')
+    )
+    leader = models.ForeignKey(
+        Staff,
+        related_name='led_project_leader_changes',
+        on_delete=models.CASCADE,
+        verbose_name=_('新负责人')
+    )
+    change_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name=_('变更日期')
+    )
+    remark = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_('变更备注')
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_('更新时间')
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('创建时间')
+    )
 
 ### 项目预算
-from django.db import models
-from django.utils.translation import gettext_lazy as _
+# from django.db import models
+# from django.utils.translation import gettext_lazy as _
 
 
 # 修复前
@@ -198,10 +260,10 @@ from django.utils.translation import gettext_lazy as _
 
 # 修复后
 class ProjectBudgetType(models.TextChoices):
-    INCOME = "INCOME", _("收入")
-    EXPENSE = "EXPENSE", _("支出")
-    COORDINATION = "COORDINATION", _("统筹")
-    OTHER = "OTHER", _("其他")
+    INCOME = "INCOME", _("到账经费")
+    EXPENSE = "EXPENSE", _("外拨经费")
+    # COORDINATION = "COORDINATION", _("统筹")
+    # OTHER = "OTHER", _("其他")
 
 class ProjectBudget(models.Model):
     # 移除手动定义的id字段，Django会自动创建自增主键
