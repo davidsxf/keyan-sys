@@ -10,6 +10,7 @@ export interface ProjectDocumentIn {
 export interface ProjectDocumentOut {
   id: number
   name: string
+  file: string // 添加文件路径字段
   remark?: string | null
 }
 
@@ -30,8 +31,6 @@ export const getProjectDocuments = async (projectId: number, filter: ProjectDocu
 // 创建项目文档 - 使用ProjectDocumentIn方式
 // 创建项目文档 - 修正URL路径和请求配置
 export const createProjectDocument = async (projectId: number, data: ProjectDocumentIn, file: File) => {
-  console.log('createProjectDocument - Input data:', projectId, data);
-  console.log('File received:', file);
   
   // 创建FormData对象
   const formData = new FormData();
@@ -76,3 +75,22 @@ export const updateProjectDocument = async (documentId: number, data: ProjectDoc
 export const deleteProjectDocument = async (documentId: number) => {
   return await http.delete(`${API_BASE}/documents/${documentId}`);
 }
+
+// 下载项目文档文件
+export const downloadProjectDocument = async (filePath: string) => {
+  // 这是一个辅助函数，实际的下载逻辑在上面的downloadFile中
+  let fullUrl = filePath;
+  
+  // 检查并补全URL
+  if (!fullUrl.startsWith('http')) {
+    if (!fullUrl.startsWith('/')) {
+      fullUrl = '/' + fullUrl;
+    }
+    fullUrl = window.location.origin + fullUrl;
+  }
+  
+  return {
+    url: fullUrl,
+    filename: filePath.split('/').pop() || 'document'
+  };
+};

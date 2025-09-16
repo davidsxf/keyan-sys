@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-$%$fb^sxc!h%s6=#0plgs$8=^v@%*vf$3^q*rzwfn&32urfqll
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,6 +57,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://172.21.25.141:8000',
+]
 # 添加CORS配置
 CORS_ALLOW_ALL_ORIGINS = True  # 开发环境可以这样设置，生产环境应限制特定域名
 CORS_ALLOW_CREDENTIALS = True
