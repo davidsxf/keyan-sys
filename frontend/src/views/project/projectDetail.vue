@@ -180,7 +180,13 @@
               <el-table :data="documents" style="margin-top: 20px">
                 <el-table-column prop="id" label="ID" width="80" />
                 <el-table-column prop="name" label="文档名称" min-width="150" />
-                <el-table-column prop="file" label="文件路径" min-width="200" />
+                <!-- <el-table-column prop="file" label="文件路径" min-width="200" /> -->
+                <el-table-column prop="file" label="文件" min-width="200">
+                  <template #default="{ row }">
+                    <el-link :href="row.file" target="_blank" @click="downloadDocument(row.file)">{{ decodeFilePath(row.file) }}</el-link>
+                  </template>
+                </el-table-column>
+
                 <el-table-column prop="remark" label="备注" min-width="150" />
                 <el-table-column prop="created_at" label="创建时间" width="180">
                   <template #default="{ row }">
@@ -387,6 +393,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { downloadFile } from '@/utils/http';
 import { Project, Choice } from '@/api/project';
 import { ProjectBudget, ProjectBudgetForm } from '@/api/projectBudget';
 import { ProjectStaff, ProjectStaffForm, Choice as ParticipantChoice } from '@/api/participant';
@@ -397,6 +404,7 @@ import { projectBudgetApi } from '@/api/projectBudget';
 import { participantApi } from '@/api/participant';
 import { staffApi } from '@/api/staff';
 import * as documentApi from '@/api/document';
+import { API_CONFIG } from '@/config/api';
 
 // 定义props和emit
 const props = defineProps<{
@@ -1140,6 +1148,53 @@ const formatDateTime = (dateStr?: string): string => {
   return new Date(dateStr).toLocaleString();
 };
 
+
+// 修改下载函数实现
+const downloadDocument = async (filePath: string) => {
+  try {
+    // 组合完整的文件URL
+    let fullUrl = filePath;
+    
+    // 检查filePath是否是完整URL，如果不是则添加后端API域名
+    if (!fullUrl.startsWith('http')) {
+      // 确保路径以/开头
+      if (!fullUrl.startsWith('/')) {
+        fullUrl = '/' + fullUrl;
+      }
+      // 添加后端API域名
+      fullUrl = window.location.origin + fullUrl;
+    }
+    
+    // 获取文件名并解码中文字符
+    let filename = filePath.split('/').pop() || 'document';
+    try {
+      // 尝试解码文件名中的中文字符
+      filename = decodeURIComponent(filename);
+    } catch (e) {
+      // 如果解码失败则使用原始文件名
+      console.warn('文件名解码失败，使用原始文件名');
+    }
+    
+    // 调用专门的下载函数
+    await downloadFile(fullUrl, filename);
+  } catch (error) {
+    console.error('下载文件失败:', error);
+    // 添加错误提示
+    ElMessage.error('文件下载失败，请稍后重试');
+  }
+};
+
+// 在 script 标签中的响应式数据定义后添加解码函数
+const decodeFilePath = (filePath: string): string => {
+  try {
+    // 尝试解码 URL 编码的中文字符
+    return decodeURIComponent(filePath);
+  } catch (e) {
+    // 如果解码失败，则返回原始路径
+    return filePath;
+  }
+};
+
 // 编辑项目
 const handleEdit = () => {
   if (!selectedProjectId.value) {
@@ -1163,6 +1218,7 @@ watch(
       loadProjectDetail();
       // 默认加载预算数据
       loadProjectBudgets();
+      loadProjectDocuments();
     }
   },
   { immediate: true }

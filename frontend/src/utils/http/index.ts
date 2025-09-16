@@ -198,3 +198,45 @@ class PureHttp {
 }
 
 export const http = new PureHttp();
+
+// 修改文件下载专用函数
+export const downloadFile = async (url: string, filename: string) => {
+  try {
+    // 使用原生fetch代替axios实例，避免拦截器可能导致的问题
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: formatToken(getToken()?.accessToken || '')
+      },
+      credentials: 'include' // 确保包含凭证信息
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // 获取Blob数据
+    const blob = await response.blob();
+    
+    // 创建下载链接
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // 修复文件名乱码问题
+    link.href = downloadUrl;
+    link.download = decodeURIComponent(filename); // 解码URL编码的文件名
+    
+    // 模拟点击下载
+    document.body.appendChild(link);
+    link.click();
+    
+    // 清理资源
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    }, 100);
+  } catch (error) {
+    console.error('下载文件失败:', error);
+    throw error;
+  }
+};

@@ -1,6 +1,8 @@
 # api.py
 # 在文件顶部添加HttpError的导入
 from ninja import Router, File, Form
+from ninja.files import UploadedFile
+
 from ninja import NinjaAPI, Query
 from ninja.pagination import paginate, PageNumberPagination
 from typing import List
@@ -401,7 +403,7 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
 
 
 @router.post("/documents/{project_id}/documents", response=ProjectDocumentOut)
-def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...),file=File(...)):
+def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...),file: UploadedFile = File(...)):
     
     print('create_project_document params:', project_id)
     # 添加更详细的调试信息
