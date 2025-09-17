@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'users',
     'core',
     'projects',
+    'achievement',
     'import_export',
 
 ]

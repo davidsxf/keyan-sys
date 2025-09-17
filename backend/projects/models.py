@@ -100,7 +100,7 @@ class Project(models.Model):
     status = models.CharField(
         max_length=20,
         choices=ProjectStatus.choices,
-        default=ProjectStatus.APPROVED,
+        default=ProjectStatus.IN_PROGRESS,
         verbose_name=_("项目状态")
     )
     level = models.CharField(
@@ -112,7 +112,7 @@ class Project(models.Model):
     type = models.CharField(
         max_length=20,
         choices=ProjectType.choices,
-        default=ProjectType.OTHER,
+        default=ProjectType.LOCAL_OTHER_PROJECT,
         verbose_name=_("项目类型")
     )
     category = models.ForeignKey(
