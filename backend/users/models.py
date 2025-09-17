@@ -15,6 +15,8 @@ class Department(models.Model):
 
     class Meta:
         db_table = "users_departments"
+        verbose_name = "部门"
+        verbose_name_plural = "部门"
 
 
 class Team(models.Model):
@@ -30,6 +32,8 @@ class Team(models.Model):
 
     class Meta:
         db_table = 'users_teams'
+        verbose_name = "团队"
+        verbose_name_plural = "团队"
 
 
 from enum import Enum
@@ -61,6 +65,8 @@ class Staff(models.Model):
 
     class Meta:
         db_table = 'users_staffs'
+        verbose_name = "职工"
+        verbose_name_plural = "职工"
 
 
 

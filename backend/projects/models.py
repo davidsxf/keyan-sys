@@ -110,7 +110,7 @@ class Project(models.Model):
         verbose_name=_("项目级别")
     )
     type = models.CharField(
-        max_length=20,
+        max_length=30,  # Increased from 20 to 30 to accommodate all choices
         choices=ProjectType.choices,
         default=ProjectType.LOCAL_OTHER_PROJECT,
         verbose_name=_("项目类型")

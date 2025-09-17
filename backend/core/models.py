@@ -16,6 +16,8 @@ class Org(models.Model):
 
     class Meta:
         db_table = "orgs"
+        verbose_name = "组织"
+        verbose_name_plural = "组织"
 
 
 
@@ -34,3 +36,5 @@ class Category(models.Model):
     class Meta:
         db_table = "categories"
         unique_together = ('name', 'parent')
+        verbose_name = "类别"
+        verbose_name_plural = "类别"

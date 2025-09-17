@@ -2,12 +2,29 @@ from django.contrib import admin
 from .models import Department, Team, Staff
 from import_export.admin import ImportExportModelAdmin
 from import_export import resources
+from import_export.fields import Field
+from import_export.widgets import ForeignKeyWidget
+
+# 导入通用的编码处理类
+from common.admin import EncodingAwareImportExportModelAdmin
 
 # 定义资源类
 class DepartmentResource(resources.ModelResource):
+    # 自定义parent字段处理，支持通过name查找parent
+    parent = Field(attribute='parent', widget=ForeignKeyWidget(Department, 'name'))
+    
     class Meta:
         model = Department
         fields = ('id', 'name', 'description', 'parent', 'created_at', 'updated_at')
+
+# 使用通用的编码处理类
+@admin.register(Department)
+class DepartmentAdmin(EncodingAwareImportExportModelAdmin):
+    resource_class = DepartmentResource
+    list_display = ('id', 'name', 'description', 'parent', 'created_at', 'updated_at')
+    search_fields = ('name', 'description')
+    list_filter = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
 
 class TeamResource(resources.ModelResource):
     class Meta:
@@ -22,15 +39,6 @@ class StaffResource(resources.ModelResource):
             'department', 'team', 'position', 'is_team_leader', 'status',
             'phone', 'remark', 'created_at', 'updated_at'
         )
-
-# 更新 Admin 类
-@admin.register(Department)
-class DepartmentAdmin(ImportExportModelAdmin):
-    resource_class = DepartmentResource
-    list_display = ('id', 'name', 'description', 'parent', 'created_at', 'updated_at')
-    search_fields = ('name', 'description')
-    list_filter = ('created_at', 'updated_at')
-    ordering = ('-created_at',)
 
 @admin.register(Team)
 class TeamAdmin(ImportExportModelAdmin):

@@ -36,7 +36,7 @@
       <div class="detail-container">
         <!-- 项目基本信息 -->
         <el-card class="info-card" title="基本信息">
-          <el-descriptions column="3" :border="true">
+          <el-descriptions column="1" :border="true">
             <el-descriptions-item label="项目名称">{{ project.title }}</el-descriptions-item>
             <el-descriptions-item label="项目编号">{{ project.number }}</el-descriptions-item>
             <el-descriptions-item label="课题编号">{{ project.funding_number || '-' }}</el-descriptions-item>

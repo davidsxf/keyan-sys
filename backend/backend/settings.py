@@ -141,15 +141,17 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# 配置 django-import-export 支持的格式
-IMPORT_EXPORT_FORMATS = (
-    'import_export.formats.base_formats.CSV',
-    'import_export.formats.base_formats.XLS',
-    'import_export.formats.base_formats.XLSX',
-    'import_export.formats.base_formats.TSV',
-    'import_export.formats.base_formats.ODS',
-    'import_export.formats.base_formats.JSON',
-)
+# 移除当前错误的IMPORT_EXPORT_FORMATS配置，使用默认格式设置
+# 或者使用下面正确的配置方式
+# from import_export.formats import base_formats
+# IMPORT_EXPORT_FORMATS = (
+#     base_formats.CSV,
+#     base_formats.XLS,
+#     base_formats.XLSX,
+#     base_formats.TSV,
+#     base_formats.ODS,
+#     base_formats.JSON,
+# )
 
 
 # 文件上传配置
