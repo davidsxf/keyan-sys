@@ -1,299 +1,411 @@
 <template>
-  <div class="project-detail">
-    <el-card>
+  <div class="project-detail-page">
+    <!-- 项目详细信息部分 -->
+    <el-card class="project-info-card">
       <template #header>
         <div class="card-header">
-          <span>项目详情</span>
+          <span>项目详细信息</span>
           <div class="header-actions">
-            <!-- 项目选择下拉框 -->
-            <el-select
-              v-model="selectedProjectId"
-              placeholder="请选择项目"
-              filterable
-              remote
-              :remote-method="remoteSearchProjects"
-              :loading="projectSearchLoading"
-              value-key="id"
-              clearable
-              @change="handleProjectChange"
-              style="width: 300px; margin-right: 10px;"
-            >
-              <el-option
-                v-for="item in projectOptions"
-                :key="item.id"
-                :label="`${item.number} - ${item.title}`"
-                :value="item.id"
-              />
-            </el-select>
-            <el-button-group>
-              <el-button type="primary" @click="handleEdit">编辑</el-button>
-              <el-button @click="handleBack">返回</el-button>
-            </el-button-group>
+            <el-button @click="handleBack">返回列表</el-button>
+            <el-button type="primary" @click="handleEdit">编辑项目</el-button>
           </div>
         </div>
       </template>
-
-      <div class="detail-container">
-        <!-- 项目基本信息 -->
-        <el-card class="info-card" title="基本信息">
-          <el-descriptions column="3" :border="true">
-            <el-descriptions-item label="项目名称">{{ project.title }}</el-descriptions-item>
-            <el-descriptions-item label="项目编号">{{ project.number }}</el-descriptions-item>
-            <el-descriptions-item label="课题编号">{{ project.funding_number || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="项目负责人">{{ project.leader_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="项目状态"><el-tag>{{ project.status_display }}</el-tag></el-descriptions-item>
-            <el-descriptions-item label="项目类别">{{ project.category_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="项目类型">{{ project.type_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="研究领域">{{ project.research_area || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="立项时间">{{ formatDate(project.start_date) }}</el-descriptions-item>
-            <el-descriptions-item label="结项时间">{{ formatDate(project.end_date) }}</el-descriptions-item>
-            <el-descriptions-item label="承担单位">{{ project.undertake_display }}</el-descriptions-item>
-            <el-descriptions-item label="项目来源">{{ project.source_name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="项目预算(万元)">{{ project.budget ? project.budget.toFixed(2) : '0.00' }}</el-descriptions-item>
-            <el-descriptions-item label="备注">{{ project.remark || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间">{{ formatDateTime(project.created_at) }}</el-descriptions-item>
-            <el-descriptions-item label="更新时间">{{ formatDateTime(project.updated_at) }}</el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
-        <!-- 标签页切换 -->
-        <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
-          <!-- 项目经费信息 -->
-          <el-tab-pane label="项目预算" name="budget">
-            <el-card class="budget-card" v-loading="budgetDataLoading">
-              <div class="budget-header">
-                <el-button type="primary" size="small" @click="showBudgetDialog">新增预算</el-button>
-              </div>
-
-              <!-- 预算统计 -->
-              <div class="budget-summary">
-                <el-row :gutter="20">
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">总预算</div>
-                      <div class="stat-value">{{ project.budget ? project.budget.toFixed(2) : '0.00' }}万元</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">收入</div>
-                      <div class="stat-value income">{{ incomeBudget.toFixed(2) }}万元</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">支出</div>
-                      <div class="stat-value expense">{{ expenseBudget.toFixed(2) }}万元</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">统筹</div>
-                      <div class="stat-value other">{{ tongchouBudget.toFixed(2) }}万元</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">其他</div>
-                      <div class="stat-value other">{{ otherBudget.toFixed(2) }}万元</div>
-                    </div>
-                  </el-col>
-                  <el-col :span="4">
-                    <div class="stat-item">
-                      <div class="stat-label">结余</div>
-                      <div class="stat-value other">{{ remainingBudget.toFixed(2) }}万元</div>
-                    </div>
-                  </el-col>
-                </el-row>
-              </div>
-
-              <!-- 预算表格 -->
-              <el-table :data="budgets" style="margin-top: 20px">
-                <el-table-column prop="id" label="ID" width="80" />
-                <el-table-column prop="name" label="预算名称" min-width="150" />
-                <el-table-column prop="amount" label="金额(万元)" width="120" align="right">
-                  <template #default="{ row }">
-                    {{ row.amount ? row.amount.toFixed(2) : '-' }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="year" label="年度" width="100" />
-                <el-table-column prop="type_display" label="类型" width="100">
-                  <template #default="{ row }">
-                    <el-tag :type="getBudgetTypeTagType(row.type)">{{ row.type_display || getBudgetTypeLabel(row.type) }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="remark" label="备注" min-width="150" />
-                <el-table-column prop="created_at" label="创建时间" width="180">
-                  <template #default="{ row }">
-                    {{ formatDateTime(row.created_at) }}
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
-                  <template #default="{ row }">
-                    <el-button size="small" @click="editBudget(row)">编辑</el-button>
-                    <el-button size="small" type="danger" @click="deleteBudget(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-card>
-          </el-tab-pane>
-
-          <!-- 项目参与人员 -->
-          <el-tab-pane label="参与人员" name="participants">
-            <el-card class="participant-card" v-loading="participantDataLoading">
-              <div class="participant-header">
-                <el-button type="primary" size="small" @click="showParticipantDialog">新增参与人员</el-button>
-              </div>
-
-              <!-- 参与人员表格 -->
-              <el-table :data="participants" style="margin-top: 20px">
-                <el-table-column prop="id" label="ID" width="80" />
-                <el-table-column prop="staff_name" label="员工姓名" width="120" />
-                <el-table-column prop="staff_department" label="所属部门" width="150" />
-                <el-table-column prop="role_display" label="角色" width="100">
-                  <template #default="{ row }">
-                    <el-tag>{{ row.role_display || '-' }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="order" label="排序" width="80" />
-                <el-table-column prop="join_date" label="加入日期" width="120" />
-                <el-table-column prop="leave_date" label="离开日期" width="120" />
-                <el-table-column prop="remark" label="备注" min-width="150" />
-                <el-table-column label="操作" width="120" fixed="right">
-                  <template #default="{ row }">
-                    <el-button size="small" @click="editParticipant(row)">编辑</el-button>
-                    <el-button size="small" type="danger" @click="deleteParticipant(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-card>
-          </el-tab-pane>
-
-          <!-- 项目文档 -->
-          <el-tab-pane label="项目文档" name="documents">
-            <el-card class="document-card" v-loading="documentDataLoading">
-              <div class="document-header">
-                <el-button type="primary" size="small" @click="showDocumentDialog">新增文档</el-button>
-              </div>
-
-              <!-- 文档表格 -->
-              <el-table :data="documents" style="margin-top: 20px">
-                <el-table-column prop="id" label="ID" width="80" />
-                <el-table-column prop="name" label="文档名称" min-width="150" />
-                <!-- <el-table-column prop="file" label="文件路径" min-width="200" /> -->
-                <el-table-column prop="file" label="文件" min-width="200">
-                  <template #default="{ row }">
-                    <el-link :href="row.file" target="_blank" @click="downloadDocument(row.file)">{{ decodeFilePath(row.file) }}</el-link>
-                  </template>
-                </el-table-column>
-
-                <el-table-column prop="remark" label="备注" min-width="150" />
-                <el-table-column prop="created_at" label="创建时间" width="180">
-                  <template #default="{ row }">
-                    {{ formatDateTime(row.created_at) }}
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
-                  <template #default="{ row }">
-                    <el-button size="small" @click="editDocument(row)">编辑</el-button>
-                    <el-button size="small" type="danger" @click="deleteDocument(row)">删除</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-card>
-          </el-tab-pane>
-        </el-tabs>
+      
+      <div v-if="project" class="project-info-content">
+        <el-descriptions title="基本信息" :column="3" border>
+          <el-descriptions-item label="项目编号" :span="1">{{ project.number }}</el-descriptions-item>
+          <el-descriptions-item label="项目名称" :span="2">{{ project.title }}</el-descriptions-item>
+          <el-descriptions-item label="项目负责人" :span="1">{{ project.leader_name }}</el-descriptions-item>
+          <el-descriptions-item label="项目状态" :span="1">
+            <el-tag :type="getStatusTagType(project.status)">{{ project.status_display }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="项目类别" :span="1">{{ project.category_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="项目类型" :span="1">{{ project.type_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="项目来源" :span="1">{{ project.source_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="承担方式" :span="1">{{ project.undertake_display }}</el-descriptions-item>
+          <el-descriptions-item label="预算(万元)" :span="1">{{ project.budget ? formatCurrency(project.budget) : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="经费编号" :span="1">{{ project.funding_number || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="开始日期" :span="1">{{ project.start_date || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="结束日期" :span="1">{{ project.end_date || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="研究领域" :span="3">{{ project.research_area || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="3">{{ project.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+      
+      <div v-else class="no-data">
+        <el-empty description="暂无项目数据" />
       </div>
     </el-card>
-
+    
+    <!-- Tab分页部分 -->
+    <el-card class="project-tabs-card" style="margin-top: 20px;">
+      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+        <el-tab-pane label="项目经费" name="budget">
+          <div class="tab-content">
+            <div class="tab-header">
+              <span>经费列表</span>
+              <el-button type="primary" @click="showBudgetDialog">新增经费</el-button>
+            </div>
+            
+            <!-- 预算搜索表单 -->
+            <el-form :model="budgetFilter" inline style="margin-bottom: 15px;">
+              <el-form-item label="预算名称">
+                <el-input v-model="budgetFilter.name" placeholder="请输入预算名称" clearable />
+              </el-form-item>
+              <el-form-item label="年度">
+                <el-input v-model="budgetFilter.year" placeholder="请输入年度" clearable />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="loadProjectBudgets">搜索</el-button>
+                <el-button @click="resetBudgetFilter">重置</el-button>
+              </el-form-item>
+            </el-form>
+            
+            <!-- 预算统计 -->
+            <div class="budget-stats" style="margin-bottom: 15px;">
+              <el-row :gutter="20">
+                <el-col :span="6">
+                  <div class="stat-item">
+                    <span class="stat-label">收入预算</span>
+                    <span class="stat-value income">{{ formatCurrency(incomeBudget) }}</span>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="stat-item">
+                    <span class="stat-label">支出预算</span>
+                    <span class="stat-value expense">{{ formatCurrency(expenseBudget) }}</span>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="stat-item">
+                    <span class="stat-label">统筹预算</span>
+                    <span class="stat-value tongchou">{{ formatCurrency(tongchouBudget) }}</span>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="stat-item">
+                    <span class="stat-label">净预算</span>
+                    <span class="stat-value net">{{ formatCurrency(netBudget) }}</span>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
+            
+            <!-- 预算表格 -->
+            <el-table :data="budgets" v-loading="budgetsLoading">
+              <el-table-column prop="name" label="预算名称" width="180" />
+              <el-table-column prop="year" label="年度" width="100" />
+              <el-table-column prop="income" label="收入(万元)" width="120" align="right">
+                <template #default="{ row }">
+                  {{ formatCurrency(row.income || 0) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="expense" label="支出(万元)" width="120" align="right">
+                <template #default="{ row }">
+                  {{ formatCurrency(row.expense || 0) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="tongchou" label="统筹(万元)" width="120" align="right">
+                <template #default="{ row }">
+                  {{ formatCurrency(row.tongchou || 0) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="remark" label="备注" min-width="200" />
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button size="small" @click="editBudget(row)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteBudget(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 预算分页 -->
+            <div class="pagination" style="margin-top: 15px;">
+              <el-pagination
+                v-model:current-page="budgetPagination.current"
+                v-model:page-size="budgetPagination.size"
+                :total="budgetPagination.total || 0"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="loadProjectBudgets"
+                @current-change="loadProjectBudgets"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+        
+        <el-tab-pane label="项目参与人员" name="participant">
+          <div class="tab-content">
+            <div class="tab-header">
+              <span>参与人员列表</span>
+              <el-button type="primary" @click="showParticipantDialog">新增人员</el-button>
+            </div>
+            
+            <!-- 参与人员搜索表单 -->
+            <el-form :model="participantFilter" inline style="margin-bottom: 15px;">
+              <el-form-item label="员工姓名">
+                <el-input v-model="participantFilter.staff_name" placeholder="请输入员工姓名" clearable />
+              </el-form-item>
+              <el-form-item label="角色">
+                <el-select v-model="participantFilter.role" placeholder="请选择角色" clearable>
+                  <el-option
+                    v-for="role in roleChoices"
+                    :key="role.value"
+                    :label="role.label"
+                    :value="role.value"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="loadProjectParticipants">搜索</el-button>
+                <el-button @click="resetParticipantFilter">重置</el-button>
+              </el-form-item>
+            </el-form>
+            
+            <!-- 参与人员表格 -->
+            <el-table :data="participants" v-loading="participantsLoading">
+              <el-table-column prop="staff_name" label="员工姓名" width="120" />
+              <el-table-column prop="staff_number" label="员工编号" width="120" />
+              <el-table-column prop="department_name" label="所属部门" width="150" />
+              <el-table-column prop="role_display" label="角色" width="120">
+                <template #default="{ row }">
+                  <el-tag>{{ row.role_display }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="join_date" label="加入日期" width="120" />
+              <el-table-column prop="remark" label="备注" min-width="200" />
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button size="small" @click="editParticipant(row)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteParticipant(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 参与人员分页 -->
+            <div class="pagination" style="margin-top: 15px;">
+              <el-pagination
+                v-model:current-page="participantPagination.current"
+                v-model:page-size="participantPagination.size"
+                :total="participantPagination.total || 0"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="loadProjectParticipants"
+                @current-change="loadProjectParticipants"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+        
+        <el-tab-pane label="项目文档" name="document">
+          <div class="tab-content">
+            <div class="tab-header">
+              <span>文档列表</span>
+              <el-button type="primary" @click="showDocumentDialog">上传文档</el-button>
+            </div>
+            
+            <!-- 文档搜索表单 -->
+            <el-form :model="documentFilter" inline style="margin-bottom: 15px;">
+              <el-form-item label="文档名称">
+                <el-input v-model="documentFilter.name" placeholder="请输入文档名称" clearable />
+              </el-form-item>
+              <el-form-item label="上传日期">
+                <el-date-picker
+                  v-model="documentFilter.upload_date"
+                  type="date"
+                  placeholder="请选择上传日期"
+                  clearable
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="loadProjectDocuments">搜索</el-button>
+                <el-button @click="resetDocumentFilter">重置</el-button>
+              </el-form-item>
+            </el-form>
+            
+            <!-- 文档表格 -->
+            <el-table :data="documents" v-loading="documentsLoading">
+              <el-table-column prop="name" label="文档名称" min-width="200" />
+              <el-table-column prop="file_size" label="文件大小" width="100">
+                <template #default="{ row }">
+                  {{ formatFileSize(row.file_size) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="file_type" label="文件类型" width="100" />
+              <el-table-column prop="upload_by_name" label="上传人" width="120" />
+              <el-table-column prop="upload_date" label="上传日期" width="150" />
+              <el-table-column prop="remark" label="备注" min-width="200" />
+              <el-table-column label="操作" width="180" fixed="right">
+                <template #default="{ row }">
+                  <el-button size="small" @click="downloadDocument(row.file_path, row.name)">下载</el-button>
+                  <el-button size="small" type="danger" @click="deleteDocument(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            
+            <!-- 文档分页 -->
+            <div class="pagination" style="margin-top: 15px;">
+              <el-pagination
+                v-model:current-page="documentPagination.current"
+                v-model:page-size="documentPagination.size"
+                :total="documentPagination.total || 0"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="loadProjectDocuments"
+                @current-change="loadProjectDocuments"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+        
+        <el-tab-pane label="项目负责人变更" name="leaderChange">
+          <div class="tab-content">
+            <div class="tab-header">
+              <span>负责人变更记录</span>
+            </div>
+            
+            <!-- 负责人变更搜索表单 -->
+            <el-form :model="leaderChangeFilter" inline style="margin-bottom: 15px;">
+              <el-form-item label="变更日期">
+                <el-date-picker
+                  v-model="leaderChangeFilter.change_date"
+                  type="date"
+                  placeholder="请选择变更日期"
+                  clearable
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="loadProjectLeaderChanges">搜索</el-button>
+                <el-button @click="resetLeaderChangeFilter">重置</el-button>
+              </el-form-item>
+            </el-form>
+            
+            <!-- 负责人变更表格 -->
+            <el-table :data="leaderChanges" v-loading="leaderChangesLoading">
+              <el-table-column prop="old_leader_name" label="原负责人" width="120" />
+              <el-table-column prop="new_leader_name" label="新负责人" width="120" />
+              <el-table-column prop="change_date" label="变更日期" width="150" />
+              <el-table-column prop="change_reason" label="变更原因" min-width="200" />
+              <el-table-column prop="operator_name" label="操作人" width="120" />
+            </el-table>
+            
+            <!-- 负责人变更分页 -->
+            <div class="pagination" style="margin-top: 15px;">
+              <el-pagination
+                v-model:current-page="leaderChangePagination.current"
+                v-model:page-size="leaderChangePagination.size"
+                :total="leaderChangePagination.total || 0"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="loadProjectLeaderChanges"
+                @current-change="loadProjectLeaderChanges"
+              />
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+    
     <!-- 预算表单对话框 -->
     <el-dialog
       v-model="budgetDialogVisible"
-      :title="budgetFormTitle"
-      width="600px"
+      :title="budgetDialogTitle"
+      width="500px"
       :close-on-click-modal="false"
     >
       <el-form
         ref="budgetFormRef"
-        :model="budgetFormData"
+        :model="budgetForm"
         :rules="budgetFormRules"
         label-width="100px"
         label-position="right"
       >
         <el-form-item label="预算名称" prop="name">
-          <el-input v-model="budgetFormData.name" placeholder="请输入预算名称" />
+          <el-input v-model="budgetForm.name" placeholder="请输入预算名称" />
         </el-form-item>
-        <el-form-item label="金额(万元)" prop="amount">
-          <el-input 
-            v-model.number="budgetFormData.amount" 
-            placeholder="请输入金额" 
-            type="number" 
-            :step="0.01" 
+        <el-form-item label="年度" prop="year">
+          <el-input v-model.number="budgetForm.year" placeholder="请输入年度" />
+        </el-form-item>
+        <el-form-item label="收入(万元)" prop="income">
+          <el-input-number
+            v-model.number="budgetForm.income"
+            :min="0"
             :precision="2"
+            :step="0.1"
+            controls-position="right"
+            style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="预算年度" prop="year">
-          <el-input v-model.number="budgetFormData.year" placeholder="请输入预算年度" />
+        <el-form-item label="支出(万元)" prop="expense">
+          <el-input-number
+            v-model.number="budgetForm.expense"
+            :min="0"
+            :precision="2"
+            :step="0.1"
+            controls-position="right"
+            style="width: 100%"
+          />
         </el-form-item>
-        <el-form-item label="预算类型" prop="type">
-          <el-select v-model="budgetFormData.type" placeholder="请选择预算类型">
-            <el-option
-              v-for="item in budgetTypeChoices"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
+        <el-form-item label="统筹(万元)" prop="tongchou">
+          <el-input-number
+            v-model.number="budgetForm.tongchou"
+            :min="0"
+            :precision="2"
+            :step="0.1"
+            controls-position="right"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="budgetFormData.remark" type="textarea" placeholder="请输入备注信息" />
+          <el-input
+            v-model="budgetForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入备注"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="budgetDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitBudgetForm">确定</el-button>
-        </span>
+        <el-button @click="budgetDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitBudgetForm">确定</el-button>
       </template>
     </el-dialog>
-
+    
     <!-- 参与人员表单对话框 -->
     <el-dialog
       v-model="participantDialogVisible"
-      :title="participantFormTitle"
-      width="600px"
+      :title="participantDialogTitle"
+      width="500px"
       :close-on-click-modal="false"
     >
       <el-form
         ref="participantFormRef"
-        :model="participantFormData"
+        :model="participantForm"
         :rules="participantFormRules"
         label-width="100px"
         label-position="right"
       >
         <el-form-item label="员工" prop="staff_id">
-          <el-select 
-            v-model="participantFormData.staff_id" 
+          <el-select
+            v-model="participantForm.staff_id"
             placeholder="请选择员工"
             filterable
             remote
             :remote-method="remoteSearchStaff"
             :loading="staffLoading"
-            value-key="id"
-            clearable
             @visible-change="handleStaffSelectVisibleChange"
           >
             <el-option
-              v-for="staff in staffs"
+              v-for="staff in staffOptions"
               :key="staff.id"
-              :label="staff.name"
+              :label="staff.name + '(' + staff.number + ')'"
               :value="staff.id"
             />
           </el-select>
         </el-form-item>
-        
         <el-form-item label="角色" prop="role">
-          <el-select v-model="participantFormData.role" placeholder="请选择角色">
+          <el-select v-model="participantForm.role" placeholder="请选择角色">
             <el-option
               v-for="role in roleChoices"
               :key="role.value"
@@ -302,938 +414,795 @@
             />
           </el-select>
         </el-form-item>
-        
-        <el-form-item label="排序">
-          <el-input-number
-            v-model.number="participantFormData.order"
-            :min="0"
-            controls-position="right"
+        <el-form-item label="加入日期" prop="join_date">
+          <el-date-picker
+            v-model="participantForm.join_date"
+            type="date"
+            placeholder="选择加入日期"
+            value-format="YYYY-MM-DD"
             style="width: 100%"
           />
         </el-form-item>
-        
-        <el-form-item label="加入日期">
-          <el-date-picker
-            v-model="participantFormData.join_date"
-            type="date"
-            placeholder="请选择加入日期"
-            clearable
-          />
-        </el-form-item>
-        
-        <el-form-item label="离开日期">
-          <el-date-picker
-            v-model="participantFormData.leave_date"
-            type="date"
-            placeholder="请选择离开日期"
-            clearable
-          />
-        </el-form-item>
-        
         <el-form-item label="备注">
           <el-input
-            v-model="participantFormData.remark"
+            v-model="participantForm.remark"
             type="textarea"
-            placeholder="请输入备注信息"
             :rows="3"
+            placeholder="请输入备注"
           />
         </el-form-item>
       </el-form>
-      
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="participantDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitParticipantForm">确定</el-button>
-        </span>
+        <el-button @click="participantDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitParticipantForm">确定</el-button>
       </template>
     </el-dialog>
-
+    
     <!-- 文档表单对话框 -->
     <el-dialog
       v-model="documentDialogVisible"
-      :title="documentFormTitle"
+      :title="documentDialogTitle"
       width="500px"
       :close-on-click-modal="false"
     >
-      <el-form ref="documentFormRef" :model="documentFormData" :rules="documentFormRules" label-width="80px">
+      <el-form
+        ref="documentFormRef"
+        :model="documentForm"
+        :rules="documentFormRules"
+        label-width="100px"
+        label-position="right"
+      >
         <el-form-item label="文档名称" prop="name">
-          <el-input v-model="documentFormData.name" placeholder="请输入文档名称" />
+          <el-input v-model="documentForm.name" placeholder="请输入文档名称" />
         </el-form-item>
-        <el-form-item label="文件上传" prop="file">
+        <el-form-item label="上传文件" prop="file">
           <el-upload
-            ref="uploadRef"
-            action=""
-            :on-change="handleFileChange"
+            ref="upload"
             :auto-upload="false"
-            :show-file-list="true"
-            accept="*"
+            :file-list="fileList"
+            :before-upload="handleFileBeforeUpload"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            :limit="1"
+            class="upload-demo"
           >
-            <el-button type="primary">选择文件</el-button>
+            <el-button type="primary">点击上传</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                只能上传单个文件，支持常见文档格式
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
-        <el-form-item label="备注" prop="remark">
+        <el-form-item label="备注">
           <el-input
-            v-model="documentFormData.remark"
+            v-model="documentForm.remark"
             type="textarea"
-            placeholder="请输入备注信息"
-            rows="3"
+            :rows="3"
+            placeholder="请输入备注"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="documentDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitDocumentForm">确定</el-button>
-        </span>
+        <el-button @click="closeDocumentDialog">取消</el-button>
+        <el-button type="primary" @click="submitDocumentForm">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { downloadFile } from '@/utils/http';
-import { Project, Choice } from '@/api/project';
-import { ProjectBudget, ProjectBudgetForm } from '@/api/projectBudget';
-import { ProjectStaff, ProjectStaffForm, Choice as ParticipantChoice } from '@/api/participant';
-import { Staff } from '@/api/staff';
-import { ProjectDocumentIn, ProjectDocumentOut } from '@/api/document';
+import { ref, computed, reactive, watch, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox, FormInstance, FormRules, UploadFile, UploadRawFile } from 'element-plus';
+import { Project } from '@/api/project';
 import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
 import { participantApi } from '@/api/participant';
-import { staffApi } from '@/api/staff';
 import * as documentApi from '@/api/document';
-import { API_CONFIG } from '@/config/api';
+import { staffApi } from '@/api/staff';
+import { downloadFile } from '@/utils/http';
 
-// 定义props和emit
-const props = defineProps<{
-  projectId?: number;
-}>();
-
-const emit = defineEmits<{
-  (e: 'close'): void;
-}>();
-
-// 当前激活的标签页
-const activeTab = ref('budget');
-
-// 项目选择相关
-const selectedProjectId = ref<number>(props.projectId || 0);
-const projectOptions = ref<Project[]>([]);
-const projectSearchLoading = ref(false);
+// 路由和参数
+const route = useRoute();
+const router = useRouter();
+const selectedProjectId = ref(Number(route.query.id || 0));
 
 // 项目数据
-const project = ref<Project>({} as Project);
-const projectLoading = ref(true);
+const project = ref<Project | null>(null);
+const projectLoading = ref(false);
 
-// 预算数据
-const budgets = ref<ProjectBudget[]>([]);
-const budgetDataLoading = ref(false);
-const budgetTypeChoices = ref<Choice[]>([]);
+// 活动标签页
+const activeTab = ref('budget');
+
+// 预算相关
+const budgets = ref<any[]>([]);
+const budgetsLoading = ref(false);
+const budgetPagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+const budgetFilter = reactive({
+  name: '',
+  year: ''
+});
 const budgetDialogVisible = ref(false);
-const budgetFormRef = ref<any>(null);
-const currentBudget = ref<ProjectBudget | null>(null);
+const currentBudget = ref<any | null>(null);
+const budgetFormRef = ref<FormInstance>();
+const budgetForm = reactive({
+  name: '',
+  year: '',
+  income: 0,
+  expense: 0,
+  tongchou: 0,
+  remark: ''
+});
 
-// 参与人员数据
-const participants = ref<ProjectStaff[]>([]);
-const participantDataLoading = ref(false);
-const roleChoices = ref<ParticipantChoice[]>([]);
+// 参与人员相关
+const participants = ref<any[]>([]);
+const participantsLoading = ref(false);
+const participantPagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+const participantFilter = reactive({
+  staff_name: '',
+  role: ''
+});
 const participantDialogVisible = ref(false);
-const participantFormRef = ref<any>(null);
-const currentParticipant = ref<ProjectStaff | null>(null);
-const staffs = ref<Staff[]>([]);
-const staffLoading = ref(false);
-
-// 文档数据
-const documents = ref<ProjectDocumentOut[]>([]);
-const file = ref<File>(null);
-const documentDataLoading = ref(false);
-const documentDialogVisible = ref(false);
-const documentFormRef = ref<any>(null);
-const currentDocument = ref<ProjectDocumentOut | null>(null);
-const uploadRef = ref();
-
-// 预算表单数据
-const budgetFormData = reactive<ProjectBudgetForm>({
-  project_id: 0, 
-  name: '',
-  amount: 0.00,
-  year: new Date().getFullYear(),
-  type: '',
-  remark: ''
-});
-
-// 预算表单规则
-const budgetFormRules = {
-  name: [
-    { required: true, message: '请输入预算名称', trigger: 'blur' }
-  ],
-  amount: [
-    { required: true, message: '请输入金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '金额必须大于等于0', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        // 确保 value 是数字类型
-        const numValue = typeof value === 'number' ? value : parseFloat(value);
-        
-        // 仅在新增收入预算时进行验证
-        if (!currentBudget.value && budgetFormData.type === 'INCOME' && project.value.budget) {
-          const newIncome = !isNaN(numValue) ? numValue : 0;
-          const totalIncome = incomeBudget.value + newIncome;
-          
-          // 浮点数比较时考虑精度问题
-          if (totalIncome > project.value.budget + 0.0001) {
-            callback(new Error(`收入金额不能超过项目总预算 ${project.value.budget.toFixed(2)} 万元`));
-            return;
-          }
-        }
-        
-        // 验证支出、统筹、其他不能大于结余
-        if (budgetFormData.type !== 'INCOME') {
-          const newAmount = !isNaN(numValue) ? numValue : 0;
-          const currentAmount = currentBudget.value ? currentBudget.value.amount || 0 : 0;
-          const amountDiff = newAmount - currentAmount;
-          
-          let totalExpense = expenseBudget.value;
-          let totalTongchou = tongchouBudget.value;
-          let totalOther = otherBudget.value;
-          
-          // 根据当前编辑的预算类型调整相应的总额
-          if (currentBudget.value) {
-            if (currentBudget.value.type === 'EXPENSE') {
-              totalExpense -= currentAmount;
-            } else if (currentBudget.value.type === 'COORDINATION') {
-              totalTongchou -= currentAmount;
-            } else if (currentBudget.value.type !== 'INCOME') {
-              totalOther -= currentAmount;
-            }
-          }
-          
-          if (budgetFormData.type === 'EXPENSE') {
-            totalExpense += newAmount;
-          } else if (budgetFormData.type === 'COORDINATION') {
-            totalTongchou += newAmount;
-          } else if (budgetFormData.type !== 'INCOME') {
-            totalOther += newAmount;
-          }
-          
-          const totalSpending = totalExpense + totalTongchou + totalOther;
-          
-          if (totalSpending > incomeBudget.value + 0.0001) {
-            callback(new Error(`支出、统筹、其他总额 ${totalSpending.toFixed(2)} 万元不能大于收入总额 ${incomeBudget.value.toFixed(2)} 万元`));
-            return;
-          }
-        }
-        
-        callback();
-      },
-      trigger: 'blur'
-    }
-  ],
-  year: [
-    { required: true, message: '请输入预算年度', trigger: 'blur' },
-    { type: 'number', message: '请输入有效的年份', trigger: 'blur' }
-  ],
-  type: [
-    { required: true, message: '请选择预算类型', trigger: 'change' }
-  ]
-};
-
-// 参与人员表单数据
-const participantFormData = reactive<ProjectStaffForm>({
-  project_id: 0,
-  staff_id: 0,
+const currentParticipant = ref<any | null>(null);
+const participantFormRef = ref<FormInstance>();
+const participantForm = reactive({
+  staff_id: undefined,
   role: '',
-  order: undefined,
-  join_date: undefined,
-  leave_date: undefined,
-  remark: undefined
-});
-
-// 参与人员表单规则
-const participantFormRules = {
-  staff_id: [
-    { required: true, message: '请选择员工', trigger: 'change' },
-    { type: 'number', message: '员工ID必须为数字', trigger: 'change' }
-  ],
-  role: [
-    { required: true, message: '请选择角色', trigger: 'change' }
-  ]
-};
-
-// 文档表单数据
-const documentFormData = reactive<Partial<ProjectDocumentIn>>({
-  name: '',
+  join_date: '',
   remark: ''
 });
+const staffOptions = ref<any[]>([]);
+const staffLoading = ref(false);
+const roleChoices = ref<any[]>([]);
 
-// 文档表单规则
-const documentFormRules = {
-  name: [
-    { required: true, message: '请输入文档名称', trigger: 'blur' },
-    { min: 1, max: 100, message: '文档名称长度应在1到100个字符之间', trigger: 'blur' }
-  ],
-  // file: [
-  //   { required: true, message: '请选择文件', trigger: 'change' }
-  // ]
-};
+// 文档相关
+const documents = ref<any[]>([]);
+const documentsLoading = ref(false);
+const documentPagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+const documentFilter = reactive({
+  name: '',
+  upload_date: ''
+});
+const documentDialogVisible = ref(false);
+const currentDocument = ref<any | null>(null);
+const documentFormRef = ref<FormInstance>();
+const documentForm = reactive({
+  name: '',
+  file: null as File | null,
+  remark: ''
+});
+const fileList = ref<UploadFile[]>([]);
 
-// 表单标题计算属性
-const budgetFormTitle = computed(() => {
-  return currentBudget.value ? '编辑预算' : '新增预算';
+// 负责人变更相关
+const leaderChanges = ref<any[]>([]);
+const leaderChangesLoading = ref(false);
+const leaderChangePagination = reactive({
+  current: 1,
+  size: 10,
+  total: 0
+});
+const leaderChangeFilter = reactive({
+  change_date: ''
 });
 
-const participantFormTitle = computed(() => {
-  return currentParticipant.value ? '编辑参与人员' : '新增参与人员';
-});
+// 计算属性
+const budgetDialogTitle = computed(() => currentBudget.value ? '编辑预算' : '新增预算');
+const participantDialogTitle = computed(() => currentParticipant.value ? '编辑参与人员' : '新增参与人员');
+const documentDialogTitle = computed(() => currentDocument.value ? '编辑文档' : '上传文档');
 
-const documentFormTitle = computed(() => {
-  return currentDocument.value ? '编辑文档' : '新增文档';
-});
-
-// 预算统计数据相关计算属性
+// 预算统计计算属性
 const incomeBudget = computed(() => {
-  return budgets.value
-    .filter(budget => budget.type === 'INCOME')
-    .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+  return budgets.value.reduce((sum, item) => sum + (item.income || 0), 0);
 });
 
 const expenseBudget = computed(() => {
-  return budgets.value
-    .filter(budget => budget.type === 'EXPENSE')
-    .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+  return budgets.value.reduce((sum, item) => sum + (item.expense || 0), 0);
 });
 
 const tongchouBudget = computed(() => {
-  return budgets.value
-    .filter(budget => budget.type === 'COORDINATION')
-    .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+  return budgets.value.reduce((sum, item) => sum + (item.tongchou || 0), 0);
 });
 
-const otherBudget = computed(() => {
-  return budgets.value
-    .filter(budget => budget.type !== 'INCOME' && budget.type !== 'EXPENSE' && budget.type !== 'COORDINATION')
-    .reduce((sum, budget) => sum + (budget.amount || 0), 0);
+const netBudget = computed(() => {
+  return incomeBudget.value - expenseBudget.value - tongchouBudget.value;
 });
 
-const remainingBudget = computed(() => {
-  return incomeBudget.value - expenseBudget.value - otherBudget.value - tongchouBudget.value;
-});
-
-// 远程搜索项目
-const remoteSearchProjects = async (query: string) => {
-  if (!query) {
-    // 如果查询为空，加载所有项目
-    await loadAllProjects();
-    return;
-  }
-  
-  projectSearchLoading.value = true;
-  try {
-    const response = await projectApi.getProjects({ title: query });
-    projectOptions.value = response.items || [];
-  } catch (error) {
-    ElMessage.error('搜索项目失败');
-    console.error('搜索项目失败:', error);
-  } finally {
-    projectSearchLoading.value = false;
-  }
+// 表单验证规则
+const budgetFormRules: FormRules = {
+  name: [{ required: true, message: '请输入预算名称', trigger: 'blur' }],
+  year: [{ required: true, message: '请输入年度', trigger: 'blur' }],
+  income: [
+    { required: true, message: '请输入收入金额', trigger: 'blur' },
+    { type: 'number', min: 0, message: '收入金额不能为负数', trigger: 'blur' }
+  ],
+  expense: [
+    { required: true, message: '请输入支出金额', trigger: 'blur' },
+    { type: 'number', min: 0, message: '支出金额不能为负数', trigger: 'blur' }
+  ],
+  tongchou: [
+    { required: true, message: '请输入统筹金额', trigger: 'blur' },
+    { type: 'number', min: 0, message: '统筹金额不能为负数', trigger: 'blur' }
+  ]
 };
 
-// 加载所有项目
-const loadAllProjects = async () => {
-  projectSearchLoading.value = true;
-  try {
-    const response = await projectApi.getProjects({});
-    projectOptions.value = response.items || [];
-  } catch (error) {
-    ElMessage.error('加载项目列表失败');
-    console.error('加载项目列表失败:', error);
-  } finally {
-    projectSearchLoading.value = false;
-  }
+const participantFormRules: FormRules = {
+  staff_id: [{ required: true, message: '请选择员工', trigger: 'change' }],
+  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  join_date: [{ required: true, message: '请选择加入日期', trigger: 'change' }]
 };
 
-// 处理项目选择变化
-const handleProjectChange = async (projectId: number) => {
-  if (!projectId) {
-    // 如果清空选择，清空所有数据
-    project.value = {} as Project;
-    budgets.value = [];
-    participants.value = [];
-    documents.value = [];
-    return;
-  }
-  
-  // 加载选中项目的详情
-  projectLoading.value = true;
-  try {
-    project.value = await projectApi.getProject(projectId);
-    // 加载项目的预算数据
-    loadProjectBudgets();
-  } catch (error) {
-    ElMessage.error('获取项目详情失败');
-    console.error('获取项目详情失败:', error);
-  } finally {
-    projectLoading.value = false;
-  }
+const documentFormRules: FormRules = {
+  name: [{ required: true, message: '请输入文档名称', trigger: 'blur' }],
+  file: [{ required: true, message: '请上传文件', trigger: 'change' }]
 };
 
 // 加载项目详情
 const loadProjectDetail = async () => {
   if (!selectedProjectId.value) return;
   
-  projectLoading.value = true;
   try {
-    project.value = await projectApi.getProject(selectedProjectId.value);
+    projectLoading.value = true;
+    const data = await projectApi.getProjectDetail(selectedProjectId.value);
+    project.value = data;
   } catch (error) {
-    ElMessage.error('获取项目详情失败');
-    console.error('获取项目详情失败:', error);
+    ElMessage.error('加载项目详情失败');
+    console.error('加载项目详情失败:', error);
   } finally {
     projectLoading.value = false;
   }
 };
 
-// 加载项目预算列表
+// 加载预算数据
 const loadProjectBudgets = async () => {
   if (!selectedProjectId.value) return;
   
-  budgetDataLoading.value = true;
   try {
-    const response = await projectBudgetApi.getProjectBudgets({ project_id: selectedProjectId.value });
-    budgets.value = response.items;
+    budgetsLoading.value = true;
+    const params = {
+      ...budgetFilter,
+      page: budgetPagination.current,
+      page_size: budgetPagination.size
+    };
+    const { results, count } = await budgetApi.getProjectBudgets(selectedProjectId.value, params);
+    budgets.value = results;
+    budgetPagination.total = count;
   } catch (error) {
-    ElMessage.error('获取预算列表失败');
-    console.error('获取预算列表失败:', error);
+    ElMessage.error('加载预算数据失败');
+    console.error('加载预算数据失败:', error);
   } finally {
-    budgetDataLoading.value = false;
+    budgetsLoading.value = false;
   }
 };
 
-// 加载项目参与人员列表
+// 加载参与人员数据
 const loadProjectParticipants = async () => {
   if (!selectedProjectId.value) return;
   
-  participantDataLoading.value = true;
   try {
-    const response = await participantApi.getProjectParticipants(selectedProjectId.value);
-    participants.value = response.items;
+    participantsLoading.value = true;
+    const params = {
+      ...participantFilter,
+      page: participantPagination.current,
+      page_size: participantPagination.size
+    };
+    const { results, count } = await participantApi.getProjectParticipants(selectedProjectId.value, params);
+    participants.value = results;
+    participantPagination.total = count;
   } catch (error) {
-    ElMessage.error('获取参与人员列表失败');
-    console.error('获取参与人员列表失败:', error);
+    ElMessage.error('加载参与人员数据失败');
+    console.error('加载参与人员数据失败:', error);
   } finally {
-    participantDataLoading.value = false;
+    participantsLoading.value = false;
   }
 };
 
-// 加载项目文档列表
+// 加载文档数据
 const loadProjectDocuments = async () => {
   if (!selectedProjectId.value) return;
   
-  documentDataLoading.value = true;
   try {
-    const response = await documentApi.getProjectDocuments(selectedProjectId.value, {});
-    documents.value = response.items || [];
+    documentsLoading.value = true;
+    const params = {
+      ...documentFilter,
+      page: documentPagination.current,
+      page_size: documentPagination.size
+    };
+    const { results, count } = await documentApi.getProjectDocuments(selectedProjectId.value, params);
+    documents.value = results;
+    documentPagination.total = count;
   } catch (error) {
-    ElMessage.error('获取文档列表失败');
-    console.error('获取文档列表失败:', error);
+    ElMessage.error('加载文档数据失败');
+    console.error('加载文档数据失败:', error);
   } finally {
-    documentDataLoading.value = false;
+    documentsLoading.value = false;
   }
 };
 
-// 加载预算类型选项
-const loadBudgetTypeChoices = async () => {
+// 加载负责人变更记录
+const loadProjectLeaderChanges = async () => {
+  if (!selectedProjectId.value) return;
+  
   try {
-    budgetTypeChoices.value = await projectBudgetApi.getBudgetTypeChoices();
+    leaderChangesLoading.value = true;
+    const params = {
+      ...leaderChangeFilter,
+      page: leaderChangePagination.current,
+      page_size: leaderChangePagination.size
+    };
+    const { results, count } = await projectApi.getProjectLeaderChanges(selectedProjectId.value, params);
+    leaderChanges.value = results;
+    leaderChangePagination.total = count;
   } catch (error) {
-    ElMessage.error('获取预算类型失败');
-    console.error('获取预算类型失败:', error);
+    ElMessage.error('加载负责人变更记录失败');
+    console.error('加载负责人变更记录失败:', error);
+  } finally {
+    leaderChangesLoading.value = false;
   }
 };
 
 // 加载角色选项
 const loadRoleChoices = async () => {
   try {
-    roleChoices.value = await participantApi.getParticipantRoles();
+    const choices = await participantApi.getRoleChoices();
+    roleChoices.value = choices;
   } catch (error) {
-    ElMessage.error('获取角色选项失败');
-    console.error('获取角色选项失败:', error);
+    console.error('加载角色选项失败:', error);
   }
 };
 
-// 加载所有员工
-const loadAllStaffs = async () => {
-  staffLoading.value = true;
-  try {
-    const response = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 100);
-    staffs.value = response || [];
-  } catch (error) {
-    ElMessage.error('加载员工列表失败');
-    console.error('加载员工列表失败:', error);
-  } finally {
-    staffLoading.value = false;
-  }
-};
-
-// 远程搜索员工
+// 搜索员工
 const remoteSearchStaff = async (query: string) => {
   if (!query) {
-    // 如果查询为空，加载所有员工
-    await loadAllStaffs();
+    staffOptions.value = [];
     return;
   }
   
-  staffLoading.value = true;
   try {
-    const response = await staffApi.getStaffs(query, undefined, undefined, undefined, 1, 50);
-    staffs.value = response || [];
+    staffLoading.value = true;
+    const staffs = await staffApi.getStaffs(query, undefined, undefined, undefined, 1, 100);
+    staffOptions.value = staffs.map((staff: any) => ({
+      id: staff.id,
+      name: staff.name,
+      number: staff.number
+    }));
   } catch (error) {
-    ElMessage.error('搜索员工失败');
     console.error('搜索员工失败:', error);
   } finally {
     staffLoading.value = false;
   }
 };
 
-// 处理员工选择框显示/隐藏事件
-const handleStaffSelectVisibleChange = async (visible: boolean) => {
-  if (visible) {
-    // 当下拉框显示时，加载所有员工
-    await loadAllStaffs();
+// 处理员工选择下拉框显示
+const handleStaffSelectVisibleChange = (visible: boolean) => {
+  if (visible && !staffOptions.value.length) {
+    remoteSearchStaff('');
   }
 };
 
-// 标签页点击事件处理
+// 处理标签页点击
 const handleTabClick = (tab: any) => {
-  const tabName = tab?.props?.name; // 增加可选链操作符
-  if (tabName === 'budget' && (!budgets.value || budgets.value.length === 0)) {
-    loadProjectBudgets();
-  } else if (tabName === 'participants' && (!participants.value || participants.value.length === 0)) {
-    loadProjectParticipants();
-  } else if (tabName === 'documents' && (!documents.value || documents.value.length === 0)) {
-    loadProjectDocuments();
-  }
-};
-
-// 显示预算对话框
-const showBudgetDialog = () => {
-  if (!selectedProjectId.value) {
-    ElMessage.warning('请先选择项目');
-    return;
-  }
+  activeTab.value = tab.name;
   
+  // 根据选中的标签页加载对应数据
+  switch (tab.name) {
+    case 'budget':
+      loadProjectBudgets();
+      break;
+    case 'participant':
+      loadProjectParticipants();
+      break;
+    case 'document':
+      loadProjectDocuments();
+      break;
+    case 'leaderChange':
+      loadProjectLeaderChanges();
+      break;
+  }
+};
+
+// 预算相关方法
+const showBudgetDialog = () => {
   currentBudget.value = null;
-  budgetFormData.project_id = selectedProjectId.value;
-  budgetFormData.name = '';
-  budgetFormData.amount = 0.00;
-  budgetFormData.year = new Date().getFullYear();
-  budgetFormData.type = '';
-  budgetFormData.remark = '';
+  resetBudgetForm();
   budgetDialogVisible.value = true;
 };
 
-// 编辑预算
-const editBudget = (budget: ProjectBudget) => {
-  currentBudget.value = budget;
-  // 填充表单数据
-  budgetFormData.project_id = budget.project_id;
-  budgetFormData.name = budget.name;
-  budgetFormData.amount = budget.amount || 0.00;
-  budgetFormData.year = budget.year || new Date().getFullYear();
-  budgetFormData.type = budget.type;
-  budgetFormData.remark = budget.remark || '';
+const editBudget = (row: any) => {
+  currentBudget.value = { ...row };
+  Object.assign(budgetForm, {
+    name: row.name,
+    year: row.year,
+    income: row.income || 0,
+    expense: row.expense || 0,
+    tongchou: row.tongchou || 0,
+    remark: row.remark || ''
+  });
   budgetDialogVisible.value = true;
 };
 
-// 删除预算
-const deleteBudget = async (budget: ProjectBudget) => {
+const deleteBudget = async (row: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除预算项「${budget.name}」吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    await projectBudgetApi.deleteProjectBudget(budget.id);
+    await ElMessageBox.confirm('确定要删除这条预算记录吗？', '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    
+    await budgetApi.deleteBudget(row.id);
     ElMessage.success('删除成功');
     loadProjectBudgets();
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败');
-      console.error('删除预算失败:', error);
     }
   }
 };
 
-// 提交预算表单
 const submitBudgetForm = async () => {
   if (!budgetFormRef.value) return;
   
   try {
-    await budgetFormRef.value.validate();
+    const valid = await budgetFormRef.value.validate();
+    if (!valid) return;
     
     if (currentBudget.value) {
-      // 编辑模式
-      await projectBudgetApi.updateProjectBudget(currentBudget.value.id, budgetFormData);
+      // 更新预算
+      await budgetApi.updateBudget(currentBudget.value.id, budgetForm);
       ElMessage.success('更新成功');
     } else {
-      // 新增模式
-      await projectBudgetApi.createProjectBudget(budgetFormData);
+      // 创建预算
+      await budgetApi.createBudget(selectedProjectId.value, budgetForm);
       ElMessage.success('创建成功');
     }
     
     budgetDialogVisible.value = false;
     loadProjectBudgets();
   } catch (error) {
-    ElMessage.error(currentBudget.value ? '更新失败' : '创建失败');
-    console.error('提交表单失败:', error);
+    if (error instanceof Error) {
+      ElMessage.error(error.message || '操作失败');
+    }
   }
 };
 
-// 显示参与人员对话框
+const resetBudgetForm = () => {
+  if (budgetFormRef.value) {
+    budgetFormRef.value.resetFields();
+  }
+  Object.assign(budgetForm, {
+    name: '',
+    year: '',
+    income: 0,
+    expense: 0,
+    tongchou: 0,
+    remark: ''
+  });
+};
+
+const resetBudgetFilter = () => {
+  Object.assign(budgetFilter, {
+    name: '',
+    year: ''
+  });
+  budgetPagination.current = 1;
+  loadProjectBudgets();
+};
+
+// 参与人员相关方法
 const showParticipantDialog = () => {
-  if (!selectedProjectId.value) {
-    ElMessage.warning('请先选择项目');
-    return;
-  }
-  
   currentParticipant.value = null;
-  participantFormData.project_id = selectedProjectId.value;
-  participantFormData.staff_id = 0;
-  participantFormData.role = '';
-  participantFormData.order = undefined;
-  participantFormData.join_date = undefined;
-  participantFormData.leave_date = undefined;
-  participantFormData.remark = undefined;
+  resetParticipantForm();
   participantDialogVisible.value = true;
 };
 
-// 编辑参与人员
-const editParticipant = (participant: ProjectStaff) => {
-  currentParticipant.value = participant;
-  // 填充表单数据
-  participantFormData.project_id = participant.project_id;
-  participantFormData.staff_id = participant.staff_id;
-  participantFormData.role = participant.role;
-  participantFormData.order = participant.order;
-  participantFormData.join_date = participant.join_date;
-  participantFormData.leave_date = participant.leave_date;
-  participantFormData.remark = participant.remark;
+const editParticipant = (row: any) => {
+  currentParticipant.value = { ...row };
+  Object.assign(participantForm, {
+    staff_id: row.staff_id,
+    role: row.role,
+    join_date: row.join_date,
+    remark: row.remark || ''
+  });
   participantDialogVisible.value = true;
 };
 
-// 删除参与人员
-const deleteParticipant = async (participant: ProjectStaff) => {
+const deleteParticipant = async (row: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除参与人员「${participant.staff_name}」吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    await participantApi.deleteParticipant(participant.id);
+    await ElMessageBox.confirm('确定要删除这条参与人员记录吗？', '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    
+    await participantApi.deleteParticipant(row.id);
     ElMessage.success('删除成功');
     loadProjectParticipants();
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败');
-      console.error('删除参与人员失败:', error);
     }
   }
 };
 
-// 提交参与人员表单
 const submitParticipantForm = async () => {
   if (!participantFormRef.value) return;
   
   try {
-    await participantFormRef.value.validate();
+    const valid = await participantFormRef.value.validate();
+    if (!valid) return;
     
-    // 检查是否是编辑操作且修改了员工
-    const isEditingDifferentStaff = currentParticipant.value && 
-      participantFormData.staff_id !== currentParticipant.value.staff_id;
-    
-    // 新增操作或编辑时修改了员工，需要检查重复
-    if (!currentParticipant.value || isEditingDifferentStaff) {
-      // 检查员工是否已参与该项目
-      const isParticipated = participants.value.some(
-        item => item.staff_id === participantFormData.staff_id &&
-                // 排除当前正在编辑的记录
-                (!currentParticipant.value || item.id !== currentParticipant.value.id)
-      );
-      
-      if (isParticipated) {
-        ElMessage.error('该员工已参与此项目');
-        return;
-      }
-    }
-    
-    // 创建一个新对象，用于提交，避免修改原始formData
-    const submitData = { ...participantFormData };
-    
-    // 格式化日期字段为ISO字符串格式 (YYYY-MM-DD)
-    if (submitData.join_date) {
-      submitData.join_date = new Date(submitData.join_date).toISOString().split('T')[0];
-    }
-    if (submitData.leave_date) {
-      submitData.leave_date = new Date(submitData.leave_date).toISOString().split('T')[0];
+    // 检查员工是否已经参与该项目
+    const existingParticipants = participants.value.filter(p => p.staff_id === participantForm.staff_id);
+    if (existingParticipants.length > 0 && !currentParticipant.value) {
+      ElMessage.warning('该员工已经是项目参与人员');
+      return;
     }
     
     if (currentParticipant.value) {
       // 更新参与人员
-      await participantApi.updateParticipant(currentParticipant.value.id, submitData);
-      ElMessage.success('参与人员更新成功');
+      await participantApi.updateParticipant(currentParticipant.value.id, participantForm);
+      ElMessage.success('更新成功');
     } else {
       // 创建参与人员
-      await participantApi.createParticipant(submitData);
-      ElMessage.success('参与人员创建成功');
+      await participantApi.createParticipant(selectedProjectId.value, participantForm);
+      ElMessage.success('创建成功');
     }
     
     participantDialogVisible.value = false;
     loadProjectParticipants();
   } catch (error) {
-    const axiosError = error as any;
-    const errorMessage = axiosError.response?.data?.detail || axiosError.message || '操作失败';
-    
-    // 处理后端返回的"该员工已参与此项目"错误
-    if (errorMessage.includes('该员工已参与此项目')) {
-      ElMessage.error('该员工已参与此项目');
-    } else {
-      // 只记录错误但不显示给用户
-      console.error('提交表单失败:', errorMessage);
+    if (error instanceof Error) {
+      ElMessage.error(error.message || '操作失败');
     }
   }
 };
 
+const resetParticipantForm = () => {
+  if (participantFormRef.value) {
+    participantFormRef.value.resetFields();
+  }
+  Object.assign(participantForm, {
+    staff_id: undefined,
+    role: '',
+    join_date: '',
+    remark: ''
+  });
+};
 
-// 显示文档对话框
+const resetParticipantFilter = () => {
+  Object.assign(participantFilter, {
+    staff_name: '',
+    role: ''
+  });
+  participantPagination.current = 1;
+  loadProjectParticipants();
+};
+
+// 文档相关方法
 const showDocumentDialog = () => {
-  if (!selectedProjectId.value) {
-    ElMessage.warning('请先选择项目');
-    return;
-  }
-  
   currentDocument.value = null;
-  documentFormData.name = '';
-  // documentFormData.file = null;
-  // file 上传文件
-  file.value = null;
-  documentFormData.remark = '';
-  
-  if (documentFormRef.value) {
-    documentFormRef.value.resetFields();
-  }
-  
-  if (uploadRef.value) {
-    uploadRef.value.clearFiles();
-  }
-  
+  resetDocumentForm();
   documentDialogVisible.value = true;
 };
 
-// 编辑文档
-const editDocument = (document: ProjectDocumentOut) => {
-  currentDocument.value = document;
-  // 填充表单数据
-  documentFormData.name = document.name;
-  documentFormData.remark = document.remark || '';
+const editDocument = (row: any) => {
+  currentDocument.value = { ...row };
+  Object.assign(documentForm, {
+    name: row.name,
+    file: null,
+    remark: row.remark || ''
+  });
   documentDialogVisible.value = true;
 };
 
-// 删除文档
-const deleteDocument = async (document: ProjectDocumentOut) => {
+const deleteDocument = async (row: any) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除文档「${document.name}」吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    );
-
-    // 修正参数数量，只传递document.id
-    await documentApi.deleteProjectDocument(document.id);
+    await ElMessageBox.confirm('确定要删除这条文档记录吗？', '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+    
+    await documentApi.deleteProjectDocument(selectedProjectId.value, row.id);
     ElMessage.success('删除成功');
     loadProjectDocuments();
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败');
-      console.error('删除文档失败:', error);
     }
   }
 };
 
-// 处理文件选择
-const handleFileChange = (uploadFile: any) => {
-  file.value = uploadFile.raw;
-  
+const handleFileBeforeUpload = (file: UploadRawFile) => {
+  // 这里可以添加文件类型和大小的验证
+  return true;
 };
 
-// 提交文档表单
-const submitDocumentForm = async () => {
-  if (!file.value) {
-    ElMessage.warning('请选择文件');
-    return;
+const handleFileChange = (file: UploadFile, fileList: UploadFile[]) => {
+  if (file.raw) {
+    documentForm.file = file.raw;
   }
+};
+
+const handleFileRemove = (file: UploadFile, fileList: UploadFile[]) => {
+  documentForm.file = null;
+};
+
+const closeDocumentDialog = () => {
+  resetDocumentForm();
+  documentDialogVisible.value = false;
+};
+
+const submitDocumentForm = async () => {
+  if (!documentFormRef.value) return;
   
   try {
-    await documentFormRef.value.validate();
+    const valid = await documentFormRef.value.validate();
+    if (!valid) return;
     
-    console.log('submitDocumentForm', selectedProjectId.value, documentFormData);
+    const formData = new FormData();
+    formData.append('name', documentForm.name);
+    if (documentForm.file) {
+      formData.append('file', documentForm.file);
+    }
+    formData.append('remark', documentForm.remark);
     
     if (currentDocument.value) {
       // 更新文档
-      // await documentApi.updateProjectDocument(currentDocument.value.id, documentFormData);
-      ElMessage.success('文档更新成功');
+      await documentApi.updateProjectDocument(selectedProjectId.value, currentDocument.value.id, formData);
+      ElMessage.success('更新成功');
     } else {
-      // 创建文档 - 传递正确的 file.value
-      console.log('handleFileChange', file.value);
-      await documentApi.createProjectDocument(selectedProjectId.value, documentFormData, file.value);
-      ElMessage.success('文档创建成功');
+      // 创建文档
+      await documentApi.createProjectDocument(selectedProjectId.value, formData);
+      ElMessage.success('上传成功');
     }
     
     documentDialogVisible.value = false;
     loadProjectDocuments();
   } catch (error) {
-    console.error('提交表单失败:', error);
-    // 尝试获取更具体的错误信息
-    const axiosError = error as any;
-    const errorMessage = axiosError.response?.data?.error || 
-                        axiosError.response?.data?.detail || 
-                        axiosError.message || 
-                        (currentDocument.value ? '文档更新失败' : '文档创建失败');
-    
-    ElMessage.error(errorMessage);
+    if (error instanceof Error) {
+      ElMessage.error(error.message || '操作失败');
+    }
   }
 };
 
-// 获取预算类型标签样式
-const getBudgetTypeTagType = (type: string): string => {
-  const typeMap: Record<string, string> = {
-    'INCOME': 'success',
-    'EXPENSE': 'danger',
-    'COORDINATION': 'primary',
-    'OTHER': 'warning'
-  };
-  return typeMap[type] || 'info';
+const resetDocumentForm = () => {
+  if (documentFormRef.value) {
+    documentFormRef.value.resetFields();
+  }
+  Object.assign(documentForm, {
+    name: '',
+    file: null,
+    remark: ''
+  });
+  fileList.value = [];
 };
 
-// 获取预算类型显示文本
-const getBudgetTypeLabel = (type: string): string => {
-  const typeChoice = budgetTypeChoices.value.find(choice => choice.value === type);
-  return typeChoice ? typeChoice.label : type;
+const resetDocumentFilter = () => {
+  Object.assign(documentFilter, {
+    name: '',
+    upload_date: ''
+  });
+  documentPagination.current = 1;
+  loadProjectDocuments();
 };
 
-// 格式化日期
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleDateString();
-};
-
-// 格式化日期时间
-const formatDateTime = (dateStr?: string): string => {
-  if (!dateStr) return '-';
-  return new Date(dateStr).toLocaleString();
-};
-
-
-// 修改下载函数实现
-const downloadDocument = async (filePath: string) => {
+// 文档下载
+const downloadDocument = async (filePath: string, fileName: string) => {
   try {
-    // 组合完整的文件URL
-    let fullUrl = filePath;
-    
-    // 检查filePath是否是完整URL，如果不是则添加后端API域名
-    if (!fullUrl.startsWith('http')) {
-      // 确保路径以/开头
-      if (!fullUrl.startsWith('/')) {
-        fullUrl = '/' + fullUrl;
-      }
-      // 添加后端API域名
-      fullUrl = window.location.origin + fullUrl;
+    // 确保filePath是完整的URL
+    let url = filePath;
+    if (!url.startsWith('http')) {
+      // 如果不是完整URL，添加基础URL
+      url = `${window.location.origin}${url}`;
     }
     
-    // 获取文件名并解码中文字符
-    let filename = filePath.split('/').pop() || 'document';
-    try {
-      // 尝试解码文件名中的中文字符
-      filename = decodeURIComponent(filename);
-    } catch (e) {
-      // 如果解码失败则使用原始文件名
-      console.warn('文件名解码失败，使用原始文件名');
-    }
-    
-    // 调用专门的下载函数
-    await downloadFile(fullUrl, filename);
+    // 下载文件
+    await downloadFile(url, fileName);
   } catch (error) {
-    console.error('下载文件失败:', error);
-    // 添加错误提示
-    ElMessage.error('文件下载失败，请稍后重试');
+    ElMessage.error('文件下载失败');
+    console.error('文件下载失败:', error);
   }
 };
 
-// 在 script 标签中的响应式数据定义后添加解码函数
-const decodeFilePath = (filePath: string): string => {
-  try {
-    // 尝试解码 URL 编码的中文字符
-    return decodeURIComponent(filePath);
-  } catch (e) {
-    // 如果解码失败，则返回原始路径
-    return filePath;
-  }
+// 重置负责人变更筛选条件
+const resetLeaderChangeFilter = () => {
+  Object.assign(leaderChangeFilter, {
+    change_date: ''
+  });
+  leaderChangePagination.current = 1;
+  loadProjectLeaderChanges();
 };
 
 // 编辑项目
 const handleEdit = () => {
-  if (!selectedProjectId.value) {
-    ElMessage.warning('请先选择项目');
-    return;
-  }
-  // 使用emit或其他方式处理编辑导航
-  console.log('编辑项目:', selectedProjectId.value);
+  // 这里可以跳转到项目编辑页面或打开编辑对话框
+  // 目前简单实现为跳转回项目列表
+  router.push({ path: '/project', query: { edit: selectedProjectId.value } });
 };
 
-// 返回上一页（在对话框中改为关闭）
+// 返回列表
 const handleBack = () => {
-  emit('close');
+  router.push('/project');
 };
 
-// 监听selectedProjectId变化，重新加载数据
-watch(
-  () => selectedProjectId.value,
-  (newId) => {
-    if (newId) {
-      loadProjectDetail();
-      // 默认加载预算数据
-      loadProjectBudgets();
-      loadProjectDocuments();
-    }
-  },
-  { immediate: true }
-);
+// 获取状态标签类型
+const getStatusTagType = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'APPROVED': 'success',
+    'PENDING': 'warning',
+    'REJECTED': 'danger',
+    'IN_PROGRESS': 'primary',
+    'COMPLETED': 'info'
+  };
+  return statusMap[status] || 'default';
+};
 
-// 初始化数据
+// 格式化金额
+const formatCurrency = (value: number) => {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return '0.00';
+  }
+  return value.toFixed(2);
+};
+
+// 格式化文件大小
+const formatFileSize = (bytes: number) => {
+  if (typeof bytes !== 'number' || isNaN(bytes)) {
+    return '0 B';
+  }
+  
+  if (bytes < 1024) {
+    return bytes + ' B';
+  } else if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + ' KB';
+  } else if (bytes < 1024 * 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  } else {
+    return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+};
+
+// 监听项目ID变化
+watch(selectedProjectId, (newId) => {
+  if (newId) {
+    loadProjectDetail();
+    
+    // 初始化时加载所有标签页数据
+    loadProjectBudgets();
+    loadProjectParticipants();
+    loadProjectDocuments();
+    loadProjectLeaderChanges();
+  }
+});
+
+// 初始化
 onMounted(() => {
-  loadAllProjects();
-  loadBudgetTypeChoices();
   loadRoleChoices();
+  if (selectedProjectId.value) {
+    loadProjectDetail();
+    loadProjectBudgets();
+    loadProjectParticipants();
+    loadProjectDocuments();
+    loadProjectLeaderChanges();
+  }
 });
 </script>
 
 <style scoped>
-.project-detail {
+.project-detail-page {
   padding: 20px;
 }
 
@@ -1245,51 +1214,53 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
+  gap: 10px;
+}
+
+.project-info-content {
+  margin-top: 20px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-}
-
-.detail-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.info-card,
-.budget-card,
-.participant-card,
-.document-card {
-  background-color: #fff;
-}
-
-.budget-header,
-.participant-header,
-.document-header {
   margin-bottom: 20px;
-  display: flex;
-  justify-content: flex-end;
 }
 
-.budget-summary {
+.budget-stats {
   background-color: #f5f7fa;
-  padding: 20px;
+  padding: 15px;
   border-radius: 4px;
 }
 
 .stat-item {
   text-align: center;
   padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
 }
 
 .stat-label {
+  display: block;
   font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
+  color: #606266;
+  margin-bottom: 5px;
 }
 
 .stat-value {
-  font-size: 24px;
+  display: block;
+  font-size: 20px;
   font-weight: bold;
-  color: #333;
 }
 
 .stat-value.income {
@@ -1300,12 +1271,17 @@ onMounted(() => {
   color: #f56c6c;
 }
 
-.stat-value.other {
+.stat-value.tongchou {
   color: #e6a23c;
 }
 
-.dialog-footer {
+.stat-value.net {
+  color: #409eff;
+}
+
+.pagination {
   display: flex;
   justify-content: flex-end;
+  margin-top: 15px;
 }
 </style>

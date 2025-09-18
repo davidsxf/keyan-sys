@@ -10,6 +10,8 @@ export interface Project {
   end_date?: string;
   status: string;
   status_display: string;
+  level?: string;
+  level_name?: string;
   category_id?: number;
   category_name?: string;
   type?: string;
@@ -34,6 +36,7 @@ export interface ProjectForm {
   start_date?: string;
   end_date?: string;
   status: string;
+  level?: string;
   category_id?: number;
   type?: string;
   budget?: number;
@@ -48,6 +51,7 @@ export interface ProjectFilter {
   title?: string;
   number?: string;
   status?: string;
+  level?: string;
   category_id?: number;
   type?: string;
   leader_id?: number;
@@ -105,6 +109,12 @@ export const projectApi = {
     // 修复 URL 路径，移除重复的 /projects
     await http.post(`${API_BASE}/${id}`, {}, { method: 'DELETE' });
   },
+
+
+//获取项目级别
+getLevelChoices: async (): Promise<Choice[]> => {
+  return await http.get(`${API_BASE}/level/choices`);
+},
 
   // 获取状态选项
   getStatusChoices: async (): Promise<Choice[]> => {
