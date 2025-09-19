@@ -3,7 +3,7 @@ from .models import Department, Team, Staff
 from import_export.admin import ImportExportModelAdmin
 from import_export import resources
 from import_export.fields import Field
-from import_export.widgets import ForeignKeyWidget
+from import_export.widgets import ForeignKeyWidget, DateWidget, DateTimeWidget
 
 # 导入通用的编码处理类
 from common.admin import EncodingAwareImportExportModelAdmin
@@ -32,6 +32,7 @@ class TeamResource(resources.ModelResource):
         fields = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
 
 class StaffResource(resources.ModelResource):
+
     class Meta:
         model = Staff
         fields = (
