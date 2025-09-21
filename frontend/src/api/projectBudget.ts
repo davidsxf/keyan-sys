@@ -41,10 +41,11 @@ export const projectBudgetApi = {
   
   // 项目预算相关方法
   
-  // 获取项目预算列表
+  // 修改getProjectBudgets方法，统一调用后端正确的API端点
   getProjectBudgets: async (params?: ProjectBudgetFilter): Promise<{ items: ProjectBudget[]; total: number }> => {
-    const response = await http.get(`${API_BASE}/budgets`, { params });
-    return response;
+    // 统一调用后端正确的API端点
+    // 不再根据project_id参数切换端点，而是让后端根据project_id参数进行筛选
+    return await http.get(`${API_BASE}/budgets`, { params });
   },
   
   // 获取单个项目预算

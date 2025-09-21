@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponse
-from .models import Project, ProjectStaff, ProjectDocument
+from .models import Project, ProjectStaff, ProjectDocument, ProjectBudget
 import csv
 from datetime import datetime
 
@@ -50,3 +50,15 @@ class ProjectDocumentAdmin(ExportCsvMixin, admin.ModelAdmin):
     search_fields = ('project__title', 'name', 'remark')
     list_filter = ('created_at', 'updated_at')
     ordering = ('-created_at',)
+
+# 添加项目预算管理
+@admin.register(ProjectBudget)
+class ProjectBudgetAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = (
+        'id', 'project', 'name', 'amount', 'year',
+        'get_type_display', 'remark', 'created_at', 'updated_at'
+    )
+    search_fields = ('project__title', 'name', 'remark')
+    list_filter = ('type', 'year', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
+    actions = ['export_as_csv']

@@ -296,7 +296,7 @@ const dialogTitle = computed(() => isEditing.value ? '编辑员工' : '新增员
 const loadStaffs = async () => {
   try {
     loading.value = true
-    staffs.value = await staffApi.getStaffs(
+    const result = await staffApi.getStaffs(
       searchKeyword.value,
       selectedDepartment.value,
       selectedTeam.value,
@@ -304,6 +304,8 @@ const loadStaffs = async () => {
       currentPage.value,
       pageSize.value
     )
+    staffs.value = result.data
+    totalCount.value = result.total // 设置总条数
   } catch (error) {
     ElMessage.error('获取员工列表失败')
   } finally {

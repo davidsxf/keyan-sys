@@ -4,11 +4,30 @@
     <el-card class="project-info-card">
       <template #header>
         <div class="card-header">
-          <span>项目详细信息</span>
-          <div class="header-actions">
-            <el-button @click="handleBack">返回列表</el-button>
-            <el-button type="primary" @click="handleEdit">编辑项目</el-button>
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <span>项目详细信息</span>
+            <el-select
+              v-model="selectedProjectId"
+              placeholder="请选择项目"
+              style="width: 300px;"
+              :loading="projectsLoading"
+              @change="handleProjectChange"
+              filterable
+              clearable
+            >
+              <el-option
+                v-for="item in projects"
+                :key="item.id"
+                :label="`${item.number} - ${item.title}`"
+                :value="item.id"
+              />
+            </el-select>
           </div>
+          <div class="header-actions">
+            <!-- <el-button @click="handleBack">返回列表</el-button> -->
+            <el-button type="primary" @click="handleEdit">编辑项目</el-button>
+            
+        </div>
         </div>
       </template>
       
@@ -65,27 +84,33 @@
             <!-- 预算统计 -->
             <div class="budget-stats" style="margin-bottom: 15px;">
               <el-row :gutter="20">
+                  <el-col :span="6">
+                  <div class="stat-item">
+                    <span class="stat-label">合同经费</span>
+                    <span class="stat-value income">{{ formatCurrency(project?.budget || 0) }}</span>
+                  </div>
+                </el-col>
                 <el-col :span="6">
                   <div class="stat-item">
-                    <span class="stat-label">收入预算</span>
+                    <span class="stat-label">到账经费</span>
                     <span class="stat-value income">{{ formatCurrency(incomeBudget) }}</span>
                   </div>
                 </el-col>
                 <el-col :span="6">
                   <div class="stat-item">
-                    <span class="stat-label">支出预算</span>
+                    <span class="stat-label">外拨经费</span>
                     <span class="stat-value expense">{{ formatCurrency(expenseBudget) }}</span>
                   </div>
                 </el-col>
-                <el-col :span="6">
+                <!-- <el-col :span="6">
                   <div class="stat-item">
                     <span class="stat-label">统筹预算</span>
                     <span class="stat-value tongchou">{{ formatCurrency(tongchouBudget) }}</span>
                   </div>
-                </el-col>
+                </el-col> -->
                 <el-col :span="6">
                   <div class="stat-item">
-                    <span class="stat-label">净预算</span>
+                    <span class="stat-label">留所经费</span>
                     <span class="stat-value net">{{ formatCurrency(netBudget) }}</span>
                   </div>
                 </el-col>
@@ -96,21 +121,21 @@
             <el-table :data="budgets" v-loading="budgetsLoading">
               <el-table-column prop="name" label="预算名称" width="180" />
               <el-table-column prop="year" label="年度" width="100" />
-              <el-table-column prop="income" label="收入(万元)" width="120" align="right">
+              <el-table-column prop="income" label="到账(万元)" width="120" align="right">
                 <template #default="{ row }">
                   {{ formatCurrency(row.income || 0) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="expense" label="支出(万元)" width="120" align="right">
+              <el-table-column prop="expense" label="外拨经费(万元)" width="120" align="right">
                 <template #default="{ row }">
                   {{ formatCurrency(row.expense || 0) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="tongchou" label="统筹(万元)" width="120" align="right">
+              <!-- <el-table-column prop="tongchou" label="统筹(万元)" width="120" align="right">
                 <template #default="{ row }">
                   {{ formatCurrency(row.tongchou || 0) }}
                 </template>
-              </el-table-column>
+              </el-table-column> -->
               <el-table-column prop="remark" label="备注" min-width="200" />
               <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
@@ -258,52 +283,25 @@
             </div>
           </div>
         </el-tab-pane>
-        
+
         <el-tab-pane label="项目负责人变更" name="leaderChange">
           <div class="tab-content">
             <div class="tab-header">
               <span>负责人变更记录</span>
+              <el-button type="primary" @click="showChangeLeaderDialog">变更负责人</el-button>
             </div>
-            
-            <!-- 负责人变更搜索表单 -->
-            <el-form :model="leaderChangeFilter" inline style="margin-bottom: 15px;">
-              <el-form-item label="变更日期">
-                <el-date-picker
-                  v-model="leaderChangeFilter.change_date"
-                  type="date"
-                  placeholder="请选择变更日期"
-                  clearable
-                />
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="loadProjectLeaderChanges">搜索</el-button>
-                <el-button @click="resetLeaderChangeFilter">重置</el-button>
-              </el-form-item>
-            </el-form>
-            
-            <!-- 负责人变更表格 -->
+            <!-- 负责人变更记录表格 -->
             <el-table :data="leaderChanges" v-loading="leaderChangesLoading">
-              <el-table-column prop="old_leader_name" label="原负责人" width="120" />
-              <el-table-column prop="new_leader_name" label="新负责人" width="120" />
               <el-table-column prop="change_date" label="变更日期" width="150" />
-              <el-table-column prop="change_reason" label="变更原因" min-width="200" />
-              <el-table-column prop="operator_name" label="操作人" width="120" />
+
+              <el-table-column prop="new_leader_name" label="变更后负责人" width="250" />
+              <el-table-column prop="remark" label="备注" min-width="300" />
             </el-table>
-            
-            <!-- 负责人变更分页 -->
-            <div class="pagination" style="margin-top: 15px;">
-              <el-pagination
-                v-model:current-page="leaderChangePagination.current"
-                v-model:page-size="leaderChangePagination.size"
-                :total="leaderChangePagination.total || 0"
-                :page-sizes="[10, 20, 50, 100]"
-                layout="total, sizes, prev, pager, next, jumper"
-                @size-change="loadProjectLeaderChanges"
-                @current-change="loadProjectLeaderChanges"
-              />
-            </div>
+    
           </div>
         </el-tab-pane>
+        
+  
       </el-tabs>
     </el-card>
     
@@ -325,11 +323,20 @@
           <el-input v-model="budgetForm.name" placeholder="请输入预算名称" />
         </el-form-item>
         <el-form-item label="年度" prop="year">
-          <el-input v-model.number="budgetForm.year" placeholder="请输入年度" />
+          <el-select v-model="budgetForm.year" placeholder="请选择年度">
+            <el-option v-for="year in yearOptions" :key="year.value" :label="year.label" :value="year.value" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="收入(万元)" prop="income">
+        <el-form-item label="预算类型" prop="type">
+       <el-select v-model="budgetForm.type" placeholder="请选择预算类型">
+            <el-option v-for="choice in budgetTypeChoices" :key="choice.value" :label="choice.label" :value="choice.value" />
+          </el-select>
+        </el-form-item>
+
+        
+        <el-form-item label="预算金额" prop="amount">
           <el-input-number
-            v-model.number="budgetForm.income"
+            v-model.number="budgetForm.amount"
             :min="0"
             :precision="2"
             :step="0.1"
@@ -337,26 +344,7 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="支出(万元)" prop="expense">
-          <el-input-number
-            v-model.number="budgetForm.expense"
-            :min="0"
-            :precision="2"
-            :step="0.1"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="统筹(万元)" prop="tongchou">
-          <el-input-number
-            v-model.number="budgetForm.tongchou"
-            :min="0"
-            :precision="2"
-            :step="0.1"
-            controls-position="right"
-            style="width: 100%"
-          />
-        </el-form-item>
+
         <el-form-item label="备注">
           <el-input
             v-model="budgetForm.remark"
@@ -488,6 +476,77 @@
         <el-button type="primary" @click="submitDocumentForm">确定</el-button>
       </template>
     </el-dialog>
+    
+    <!-- 变更负责人对话框 -->
+    <el-dialog
+        v-model="changeLeaderDialogVisible"
+        title="变更项目负责人"
+        width="500px"
+        :before-close="handleCloseChangeLeaderDialog"
+    >
+        <el-form
+            ref="changeLeaderFormRef"
+            :model="{ newLeaderId, changeRemark }"
+            label-width="100px"
+            style="padding-top: 20px;"
+        >
+            <el-form-item
+                label="当前负责人"
+                disabled
+            >
+                <span>{{ project?.leader_name || '-' }}</span>
+            </el-form-item>
+            <el-form-item
+                label="新负责人"
+                prop="newLeaderId"
+                :rules="[{ required: true, message: '请选择新负责人', trigger: 'change' }]"
+            >
+                <el-select
+                    v-model="newLeaderId"
+                    placeholder="请选择新负责人"
+                    style="width: 100%;"
+                    filterable
+                    loading="loadingLeaders"
+                >
+                    <el-option
+                        v-for="item in leaderOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                    />
+                </el-select>
+            </el-form-item>
+            <el-form-item
+                label="变更时间"
+                prop="changeDate"
+            >
+                <el-date-picker
+                    v-model="changeDate"
+                    type="date"
+                    placeholder="选择变更时间"
+                    value-format="YYYY-MM-DD"
+                    style="width: 100%;"
+                />
+            </el-form-item>
+            <el-form-item
+                label="变更备注"
+                prop="changeRemark"
+            >
+                <el-input
+                    v-model="changeRemark"
+                    type="textarea"
+                    placeholder="请输入变更原因（选填）"
+                    :rows="3"
+                />
+            </el-form-item>
+        </el-form>
+        <template #footer>
+            <span class="dialog-footer">
+                <el-button @click="changeLeaderDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="confirmChangeLeader">确定</el-button>
+            </span>
+        </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -502,11 +561,16 @@ import { participantApi } from '@/api/participant';
 import * as documentApi from '@/api/document';
 import { staffApi } from '@/api/staff';
 import { downloadFile } from '@/utils/http';
+// import Project from './project.vue';
 
 // 路由和参数
 const route = useRoute();
 const router = useRouter();
 const selectedProjectId = ref(Number(route.query.id || 0));
+
+// 添加项目列表相关变量
+const projects = ref<any[]>([]);
+const projectsLoading = ref(false);
 
 // 项目数据
 const project = ref<Project | null>(null);
@@ -514,6 +578,13 @@ const projectLoading = ref(false);
 
 // 活动标签页
 const activeTab = ref('budget');
+
+// 变更负责人相关状态
+const changeLeaderDialogVisible = ref(false);
+const newLeaderId = ref<number | null>(null);
+const changeRemark = ref('');
+const leaderOptions = ref<any[]>([]);
+const loadingLeaders = ref(false);
 
 // 预算相关
 const budgets = ref<any[]>([]);
@@ -532,12 +603,28 @@ const currentBudget = ref<any | null>(null);
 const budgetFormRef = ref<FormInstance>();
 const budgetForm = reactive({
   name: '',
-  year: '',
-  income: 0,
-  expense: 0,
-  tongchou: 0,
+  year: new Date().getFullYear(), // 默认当前年份
+  type: '',
+  amount: 0,
   remark: ''
 });
+
+// 添加年度选项数据
+const yearOptions = ref<any[]>([]);
+// 生成最近10年到未来5年的选项
+const currentYear = new Date().getFullYear();
+for (let i = currentYear - 10; i <= currentYear + 5; i++) {
+  yearOptions.value.push({
+    label: i + '年',
+    value: i
+  });
+}
+
+// 添加预算类型选项数据
+const budgetTypeChoices = ref<any[]>([
+  { label: '到账经费', value: 'income' },
+  { label: '外拨经费', value: 'expense' }
+]);
 
 // 参与人员相关
 const participants = ref<any[]>([]);
@@ -612,12 +699,12 @@ const expenseBudget = computed(() => {
   return budgets.value.reduce((sum, item) => sum + (item.expense || 0), 0);
 });
 
-const tongchouBudget = computed(() => {
-  return budgets.value.reduce((sum, item) => sum + (item.tongchou || 0), 0);
-});
+// const tongchouBudget = computed(() => {
+//   return budgets.value.reduce((sum, item) => sum + (item.tongchou || 0), 0);
+// });
 
 const netBudget = computed(() => {
-  return incomeBudget.value - expenseBudget.value - tongchouBudget.value;
+  return incomeBudget.value - expenseBudget.value;
 });
 
 // 表单验证规则
@@ -632,10 +719,10 @@ const budgetFormRules: FormRules = {
     { required: true, message: '请输入支出金额', trigger: 'blur' },
     { type: 'number', min: 0, message: '支出金额不能为负数', trigger: 'blur' }
   ],
-  tongchou: [
-    { required: true, message: '请输入统筹金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '统筹金额不能为负数', trigger: 'blur' }
-  ]
+  // tongchou: [
+  //   { required: true, message: '请输入统筹金额', trigger: 'blur' },
+  //   { type: 'number', min: 0, message: '统筹金额不能为负数', trigger: 'blur' }
+  // ]
 };
 
 const participantFormRules: FormRules = {
@@ -655,7 +742,8 @@ const loadProjectDetail = async () => {
   
   try {
     projectLoading.value = true;
-    const data = await projectApi.getProjectDetail(selectedProjectId.value);
+    // 修改这里，将不存在的getProjectDetail改为正确的getProject
+    const data = await projectApi.getProject(selectedProjectId.value);
     project.value = data;
   } catch (error) {
     ElMessage.error('加载项目详情失败');
@@ -665,20 +753,35 @@ const loadProjectDetail = async () => {
   }
 };
 
+// 加载项目列表（用于下拉选择）
+const loadProjects = async () => {
+  try {
+    projectsLoading.value = true;
+    // 获取所有项目，用于下拉选择
+    const { items } = await projectApi.getProjects({
+      page: 1,
+      page_size: 1000, // 获取足够多的项目
+      ordering: '-id'
+    });
+    projects.value = items;
+  } catch (error) {
+    ElMessage.error('加载项目列表失败');
+    console.error('加载项目列表失败:', error);
+  } finally {
+    projectsLoading.value = false;
+  }
+};
+
 // 加载预算数据
 const loadProjectBudgets = async () => {
   if (!selectedProjectId.value) return;
   
   try {
     budgetsLoading.value = true;
-    const params = {
-      ...budgetFilter,
-      page: budgetPagination.current,
-      page_size: budgetPagination.size
-    };
-    const { results, count } = await budgetApi.getProjectBudgets(selectedProjectId.value, params);
+    // 查询单个项目的预算
+    const { results } = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
+    console.log('加载的预算数据:', results);
     budgets.value = results;
-    budgetPagination.total = count;
   } catch (error) {
     ElMessage.error('加载预算数据失败');
     console.error('加载预算数据失败:', error);
@@ -753,15 +856,7 @@ const loadProjectLeaderChanges = async () => {
   }
 };
 
-// 加载角色选项
-const loadRoleChoices = async () => {
-  try {
-    const choices = await participantApi.getRoleChoices();
-    roleChoices.value = choices;
-  } catch (error) {
-    console.error('加载角色选项失败:', error);
-  }
-};
+
 
 // 搜索员工
 const remoteSearchStaff = async (query: string) => {
@@ -823,11 +918,10 @@ const showBudgetDialog = () => {
 const editBudget = (row: any) => {
   currentBudget.value = { ...row };
   Object.assign(budgetForm, {
-    name: row.name,
-    year: row.year,
-    income: row.income || 0,
-    expense: row.expense || 0,
-    tongchou: row.tongchou || 0,
+    name: row.name || '',
+    year: row.year || new Date().getFullYear(), // 编辑时如果没有年份，默认当前年份
+    type: row.type || '',
+    amount: row.amount || 0,
     remark: row.remark || ''
   });
   budgetDialogVisible.value = true;
@@ -841,7 +935,7 @@ const deleteBudget = async (row: any) => {
       type: 'warning'
     });
     
-    await budgetApi.deleteBudget(row.id);
+    await projectBudgetApi.deleteBudget(row.id);
     ElMessage.success('删除成功');
     loadProjectBudgets();
   } catch (error) {
@@ -859,12 +953,15 @@ const submitBudgetForm = async () => {
     if (!valid) return;
     
     if (currentBudget.value) {
-      // 更新预算
-      await budgetApi.updateBudget(currentBudget.value.id, budgetForm);
+      // 更新预算 - 修改为正确的方法名
+      await projectBudgetApi.updateProjectBudget(currentBudget.value.id, budgetForm);
       ElMessage.success('更新成功');
     } else {
-      // 创建预算
-      await budgetApi.createBudget(selectedProjectId.value, budgetForm);
+      // 创建预算 - 修改为正确的方法名和参数格式
+      await projectBudgetApi.createProjectBudget({
+        ...budgetForm,
+        project_id: selectedProjectId.value
+      });
       ElMessage.success('创建成功');
     }
     
@@ -886,7 +983,7 @@ const resetBudgetForm = () => {
     year: '',
     income: 0,
     expense: 0,
-    tongchou: 0,
+    // tongchou: 0,
     remark: ''
   });
 };
@@ -1133,10 +1230,22 @@ const handleEdit = () => {
   router.push({ path: '/project', query: { edit: selectedProjectId.value } });
 };
 
-// 返回列表
-const handleBack = () => {
-  router.push('/project');
+// 处理项目选择变更
+const handleProjectChange = (projectId: number) => {
+  if (projectId && projectId !== selectedProjectId.value) {
+    selectedProjectId.value = projectId;
+    // 更新URL参数，方便分享和刷新
+    router.push({
+      path: '/project/detail',
+      query: { id: projectId }
+    });
+  }
 };
+
+// 返回列表
+// const handleBack = () => {
+//   router.push('/project');
+// };
 
 // 获取状态标签类型
 const getStatusTagType = (status: string) => {
@@ -1188,9 +1297,101 @@ watch(selectedProjectId, (newId) => {
   }
 });
 
+// 加载负责人选项
+const loadLeaderOptions = async () => {
+    loadingLeaders.value = true;
+    try {
+        const response = await staffApi.getStaffs('', undefined, undefined, '在职', 1, 1000);
+        leaderOptions.value = response.data.map((staff: any) => ({
+            label: staff.name,
+            value: staff.id
+        }));
+    } catch (error) {
+        ElMessage.error('加载负责人列表失败');
+        console.error('Failed to load leader options:', error);
+    } finally {
+        loadingLeaders.value = false;
+    }
+};
+
+// 显示变更负责人对话框
+const showChangeLeaderDialog = async () => {
+    if (!project.value) {
+        ElMessage.warning('请先选择项目');
+        return;
+    }
+    
+    // 加载负责人选项
+    await loadLeaderOptions();
+    
+    // 重置表单
+    newLeaderId.value = null;
+    changeRemark.value = '';
+    
+    // 显示对话框
+    changeLeaderDialogVisible.value = true;
+};
+
+// 确认变更负责人
+const confirmChangeLeader = async () => {
+    if (!project.value || !newLeaderId.value) {
+        ElMessage.warning('请选择新的项目负责人');
+        return;
+    }
+    
+    // 与当前负责人比较
+    if (project.value.leader_id === newLeaderId.value) {
+        ElMessage.warning('新负责人与当前负责人相同');
+        return;
+    }
+    
+    try {
+        // 显示加载状态
+        const loading = ElLoading.service({
+            lock: true,
+            text: '正在处理...',
+            background: 'rgba(0, 0, 0, 0.7)'
+        });
+        
+        // 调用API创建负责人变更记录
+        const data = {
+            project_id: project.value.id,
+            leader_id: newLeaderId.value,
+            change_date: new Date().toISOString().split('T')[0], // 当前日期
+            remark: changeRemark.value
+        };
+        
+        await projectApi.createProjectLeaderChange(data);
+        
+        // 重新加载项目信息
+        await loadProjectDetail(selectedProjectId.value);
+        
+        // 如果当前在leaderChange标签页，重新加载变更记录
+        if (activeTab.value === 'leaderChange') {
+            loadProjectLeaderChanges();
+        }
+        
+        ElMessage.success('项目负责人变更成功');
+        changeLeaderDialogVisible.value = false;
+    } catch (error) {
+        ElMessage.error('项目负责人变更失败');
+        console.error('Failed to change project leader:', error);
+    } finally {
+        // 关闭加载状态
+        ElLoading.service().close();
+    }
+};
+
+// 处理关闭变更负责人对话框
+const handleCloseChangeLeaderDialog = () => {
+    // 可以在这里添加清理逻辑
+    changeLeaderDialogVisible.value = false;
+};
+
 // 初始化
 onMounted(() => {
-  loadRoleChoices();
+  // loadRoleChoices();
+  loadProjects(); // 加载项目列表
   if (selectedProjectId.value) {
     loadProjectDetail();
     loadProjectBudgets();

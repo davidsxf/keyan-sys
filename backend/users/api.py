@@ -113,8 +113,11 @@ def create_team(request, data: TeamIn):
     return prepare_team_response(team)
 
 
-@router.get("/teams/", response=List[TeamOut])
-def list_teams(request, search: Optional[str] = None, 
+@router.get("/teams/", response=dict)
+# 将返回类型从 List[TeamOut] 改为 dict
+# 因为我们需要返回包含 total 和 data 字段的对象
+
+def list_teams(request, search: Optional[str] = None,
                department_id: Optional[int] = None,
                skip: int = 0, limit: int = 100):
     """获取团队列表（支持搜索、按部门筛选和分页）"""
@@ -131,11 +134,17 @@ def list_teams(request, search: Optional[str] = None,
     if department_id:
         teams = teams.filter(department_id=department_id)
     
+    # 计算总条数
+    total = teams.count()
+    
     # 分页
     teams = teams[skip:skip + limit]
     
     # 准备响应数据
-    return [prepare_team_response(team) for team in teams]
+    return {
+        'total': total,  # 添加总条数
+        'data': [prepare_team_response(team) for team in teams]  # 团队数据
+    }
 
 @router.get("/teams/options/", response=List[TeamOption])
 def get_team_options(request):
@@ -235,13 +244,15 @@ def get_staff_choices(request):
     staffs = Staff.objects.all().order_by('name')
     return [{"value": staff.id, "label": staff.name} for staff in staffs]
 
-@router.get("/staffs/", response=List[StaffOut])
-def list_staffs(request, 
+@router.get("/staffs/", response=dict)
+# 将返回类型从 List[StaffOut] 改为 dict
+
+def list_staffs(request,
                 search: Optional[str] = None,
                 department_id: Optional[int] = None,
                 team_id: Optional[int] = None,
                 status: Optional[str] = None,
-                skip: int = 0, 
+                skip: int = 0,
                 limit: int = 100):
     """获取员工列表（支持搜索、筛选和分页）"""
     staffs = Staff.objects.all().select_related('department', 'team').order_by("-created_at")
@@ -267,12 +278,17 @@ def list_staffs(request,
     if status:
         staffs = staffs.filter(status=status)
     
+    # 计算总条数
+    total = staffs.count()
+    
     # 分页
     staffs = staffs[skip:skip + limit]
     
     # 准备响应数据
-    return [prepare_staff_response(staff) for staff in staffs]
-
+    return {
+        'total': total,  # 添加总条数
+        'data': [prepare_staff_response(staff) for staff in staffs]  # 员工数据
+    }
 
 
 @router.get("/staffs/{staff_id}/", response=StaffOut)

@@ -175,7 +175,7 @@ class Project(models.Model):
         return f"{self.title}"
 
     @property
-    def level_display(self):
+    def level_choices(self):
         """Return the display name for the project level"""
         return str(dict(ProjectLevel.choices).get(self.level, self.level))
     
@@ -220,6 +220,7 @@ class ProjectLeaderChange(models.Model):
         on_delete=models.CASCADE,
         verbose_name=_('所属项目')
     )
+    
     leader = models.ForeignKey(
         Staff,
         related_name='led_project_leader_changes',

@@ -32,25 +32,23 @@ class TeamResource(resources.ModelResource):
         fields = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
 
 class StaffResource(resources.ModelResource):
-
+    # 使用 ForeignKeyWidget 通过名称关联部门和团队
+    # department = Field(attribute='department', widget=ForeignKeyWidget(Department, 'name'), save_as_m2m=False)
+    # team = Field(attribute='team', widget=ForeignKeyWidget(Team, 'name'), save_as_m2m=False)
+    
     class Meta:
         model = Staff
-        fields = (
-            'id', 'name', 'gender', 'birthday', 'email', 'entry_date',
-            'department', 'team', 'position', 'is_team_leader', 'status',
-            'phone', 'remark', 'created_at', 'updated_at'
-        )
-
-@admin.register(Team)
-class TeamAdmin(ImportExportModelAdmin):
-    resource_class = TeamResource
-    list_display = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
-    search_fields = ('name', 'description')
-    list_filter = ('department', 'created_at', 'updated_at')
-    ordering = ('-created_at',)
+        # 只包含用户要求的字段
+        fields = ('id', 'name', 'department', 'team')
+        # 设置导入时使用的 ID 字段
+        import_id_fields = ('id',)
+        # 配置字段的默认值策略
+        skip_unchanged = True
+        report_skipped = False
 
 @admin.register(Staff)
-class StaffAdmin(ImportExportModelAdmin):
+# 修改为使用 EncodingAwareImportExportModelAdmin 类
+class StaffAdmin(EncodingAwareImportExportModelAdmin):
     resource_class = StaffResource
     list_display = (
         'id', 'name', 'gender', 'birthday', 'email', 'entry_date',
@@ -59,4 +57,12 @@ class StaffAdmin(ImportExportModelAdmin):
     )
     search_fields = ('name', 'email', 'phone', 'position', 'remark')
     list_filter = ('gender', 'department', 'team', 'status', 'is_team_leader', 'created_at', 'updated_at')
+    ordering = ('-created_at',)
+
+@admin.register(Team)
+class TeamAdmin(ImportExportModelAdmin):
+    resource_class = TeamResource
+    list_display = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
+    search_fields = ('name', 'description')
+    list_filter = ('department', 'created_at', 'updated_at')
     ordering = ('-created_at',)

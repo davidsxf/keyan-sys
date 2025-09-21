@@ -26,9 +26,18 @@ import { http } from '@/utils/http';
 const API_BASE = '/api/v1/users';
 
 
+// 定义分页响应接口
+interface PaginationResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+// 更新团队 API
 export const teamApi = {
   // 获取团队列表
-  async getTeams(search?: string, departmentId?: number, page = 1, limit = 10): Promise<Team[]> {
+  async getTeams(search?: string, departmentId?: number, page = 1, limit = 10): Promise<{data: Team[], total: number}> {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     if (departmentId) params.append('department_id', String(departmentId));
@@ -36,8 +45,34 @@ export const teamApi = {
     params.append('limit', String(limit));
     
     const response = await http.get(`${API_BASE}/teams/?${params}`);
-
-    return response;
+    
+    // 处理可能的分页响应格式
+    if (response && response.data && typeof response.total === 'number') {
+      // 格式1: { data: [...], total: 100 }
+      return {
+        data: response.data,
+        total: response.total
+      };
+    } else if (response && Array.isArray(response)) {
+      // 格式2: 直接返回数组，这种情况下无法获取总条数
+      // 为了演示，这里返回一个默认值，实际应该根据后端API调整
+      return {
+        data: response,
+        total: 0 // 实际应该从响应头或其他地方获取
+      };
+    } else if (response && response.results && typeof response.count === 'number') {
+      // 格式3: Django REST framework 默认格式 { results: [...], count: 100 }
+      return {
+        data: response.results,
+        total: response.count
+      };
+    }
+    
+    // 默认返回
+    return {
+      data: [],
+      total: 0
+    };
   },
 
 

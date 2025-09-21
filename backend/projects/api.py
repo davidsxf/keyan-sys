@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from ninja.errors import HttpError  # 添加这行导入
 from django.http import JsonResponse  # 添加JsonResponse导入
-from .models import Project, ProjectStatus, UndertakeType, ProjectType, Category, Staff,ProjectStaff,ProjectDocument,ProjectLeaderChange
+from .models import Project,Org, ProjectStatus, UndertakeType, ProjectType, ProjectLevel, Category, Staff,ProjectStaff,ProjectDocument,ProjectLeaderChange
 from .schemas import ProjectIn, ProjectOut, ProjectFilter,ProjectStaffIn, ProjectStaffOut, ProjectStaffFilter,ProjectLeaderChangeIn,ProjectLeaderChangeOut
 # 在文件顶部添加事务模块的导入
 from django.db import transaction
@@ -36,6 +36,27 @@ def create_project_leader_change(request, data: ProjectLeaderChangeIn):
     # 4. 更新项目的负责人
     project.leader = new_leader
     project.save()
+
+    # 6. 记录变更历史 查询是否第一次变更 ，如果是则记录项目创建时的负责人
+    
+    if old_leader_id is None:
+        # 项目创建时的负责人变更
+        ProjectLeaderChange.objects.create(
+            project=project,
+            leader_id=new_leader.id,
+            change_date=project.create_date,
+            remark='项目创建时的负责人',
+        )
+    else:
+        # 普通的负责人变更
+        ProjectLeaderChange.objects.create(
+            project=project,
+            leader_id=old_leader_id,
+            change_date=project.create_date,
+            remark='项目创建时的负责人',
+        )
+
+  
     
     # 5. 创建项目负责人变更记录
     project_leader_change = ProjectLeaderChange.objects.create(**data.dict())
@@ -50,13 +71,13 @@ class CustomPagination(PageNumberPagination):
 
 
 @router.get("", response=List[ProjectOut])  # 移除重复的 '/projects'
-@paginate(CustomPagination)
-def list_projects(request, filters: ProjectFilter = Query(None)):
+# @paginate(CustomPagination)
+# 移除分页装饰器，手动实现分页
+@router.get("")
+def list_projects(request, filters: ProjectFilter = Query(None), page: int = 1, size: int = 10):
     """获取项目列表"""
-    # 修复select_related，将'type'改为'category'
     queryset = Project.objects.all().select_related('leader', 'category', 'source')
 
-    
     # 如果提供了筛选条件，则应用它们
     if filters:
         if filters.title:
@@ -81,6 +102,19 @@ def list_projects(request, filters: ProjectFilter = Query(None)):
             queryset = queryset.filter(start_date__gte=filters.start_date)
         if filters.end_date:
             queryset = queryset.filter(end_date__lte=filters.end_date)
+    
+    # 计算总条数
+    total = queryset.count()
+    
+    # 手动实现分页
+    skip = (page - 1) * size
+    paged_projects = queryset[skip:skip + size]
+    
+    # 返回包含items和total的字典
+    return {
+        'items': [ProjectOut.from_orm(project) for project in paged_projects],
+        'total': total
+    }
     
     # 直接返回queryset，让Ninja的序列化器处理ProjectOut中的自定义字段
     return queryset
@@ -143,6 +177,17 @@ def get_undertake_choices(request):
     """获取承担方式选项"""
     return [{"value": choice[0], "label": choice[1]} for choice in UndertakeType.choices]
 
+
+
+@router.get("/level/choices")  # 移除重复的 '/projects'
+def get_level_choices(request):
+    """获取项目级别选项"""
+    # 由于未定义 ProjectLevel，推测此处应使用 Project 模型中的级别字段相关选项
+    # 请根据实际模型确认是否有正确的 choices 定义
+    # 以下假设模型中有对应 choices 定义为 level_choices
+    return [{"value": choice[0], "label": choice[1]} for choice in ProjectLevel.choices]
+
+
 @router.get("/type/choices")  # 移除重复的 '/projects'
 def get_type_choices(request):
     """获取项目类型选项"""
@@ -157,6 +202,17 @@ def get_category_choices(request):
     categories = Category.objects.all().order_by('sort_order', 'name')
     # 返回格式化的选项列表
     return [{"value": category.id, "label": category.name} for category in categories]
+
+
+
+# 项目来源选项
+@router.get("/source/choices")  # 移除重复的 '/projects'
+def get_source_choices(request):
+    """获取项目来源选项"""
+
+    sources = Org.objects.all()
+    return [{"value": source.id, "label": source.name} for source in sources]
+
 
 
 
@@ -194,11 +250,12 @@ def list_project_budgets(request, filters: ProjectBudgetFilter = Query(None)):
     return queryset
 
 
-@router.get("/budget/budgets/{budget_id}", response=ProjectBudgetOut)
+@router.get("/budget/budgets/{budget_id}", response=List[ProjectBudgetOut])
 def get_project_budget(request, budget_id: int):
     """获取单个项目预算详情"""
-    budget = get_object_or_404(ProjectBudget.objects.select_related('project'), id=budget_id)
-    return budget
+    # budget = get_object_or_404(ProjectBudget.objects.select_related('project'), id=budget_id)
+    budgets = ProjectBudget.objects.filter(id=budget_id).select_related('project')
+    return budgets
 
 
 @router.post("/budget/budgets", response=ProjectBudgetOut)
@@ -247,6 +304,7 @@ def delete_project_budget(request, budget_id: int):
 def get_budget_type_choices(request):
     """获取预算类型选项"""
     return [{"value": choice[0], "label": choice[1]} for choice in ProjectBudgetType.choices]
+
 
 
 
@@ -469,3 +527,13 @@ def delete_project_document(request, document_id: int):
     document = get_object_or_404(ProjectDocument, id=document_id)
     document.delete()
     return {"success": True, "message": "项目文档删除成功"}
+
+# 在项目负责人变更相关代码部分添加以下内容
+
+@router.get("/{project_id}/leader-changes", response=List[ProjectLeaderChangeOut])
+@paginate(CustomPagination)
+def get_project_leader_changes(request, project_id: int):
+    """获取项目负责人变更记录"""
+    project = get_object_or_404(Project, id=project_id)
+    # 使用select_related预加载负责人信息
+    return project.leader_changes.select_related('leader').order_by('-change_date', '-created_at')

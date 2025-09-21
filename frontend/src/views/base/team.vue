@@ -173,12 +173,14 @@ const dialogTitle = computed(() => isEditing.value ? '编辑团队' : '新增团
 const loadTeams = async () => {
   try {
     loading.value = true
-    teams.value = await teamApi.getTeams(
+    const result = await teamApi.getTeams(
       searchKeyword.value, 
       selectedDepartment.value, 
       currentPage.value, 
       pageSize.value
     )
+    teams.value = result.data
+    totalCount.value = result.total // 设置总条数
   } catch (error) {
     ElMessage.error('获取团队列表失败')
   } finally {

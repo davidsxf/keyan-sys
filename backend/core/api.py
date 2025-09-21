@@ -95,8 +95,8 @@ def create_org(request, data: OrgIn):
     return 201, org
 
 
-@router.get("/orgs/", response=List[OrgOut])
-def list_orgs(request, search: Optional[str] = None, 
+@router.get("/orgs/", response=dict)
+def list_orgs(request, search: Optional[str] = None,
               skip: int = 0, limit: int = 100):
     """获取组织列表（支持搜索和分页）"""
     orgs = Org.objects.all().order_by("-created_at")
@@ -109,8 +109,20 @@ def list_orgs(request, search: Optional[str] = None,
             Q(org_type__icontains=search)
         )
     
+    # 计算总条数
+    total = orgs.count()
+    
     # 分页
-    return orgs[skip:skip + limit]
+    paged_orgs = orgs[skip:skip + limit]
+    
+    # 将QuerySet转换为可序列化的OrgOut对象列表
+    serialized_orgs = [OrgOut.from_orm(org) for org in paged_orgs]
+    
+    # 返回包含总条数的响应
+    return {
+        'total': total,
+        'data': serialized_orgs
+    }
 
 
 @router.get("/orgs/{org_id}/", response=OrgOut)

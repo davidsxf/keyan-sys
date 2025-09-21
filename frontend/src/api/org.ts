@@ -27,16 +27,33 @@ const API_BASE = '/api/v1/core';
 
 export const orgApi = {
   // 获取组织列表
-  async getOrgs(search?: string, page = 1, limit = 10): Promise<Org[]> {
+  // 修改 getOrgs 方法返回类型
+  async getOrgs(search?: string, page = 1, limit = 10): Promise<{data: Org[], total: number}> { // 修改返回类型
     const params = new URLSearchParams();
     if (search) params.append('search', search);
     params.append('skip', String((page - 1) * limit));
     params.append('limit', String(limit));
     
-    // const response = await fetch(`${API_BASE}/orgs/?${params}`);
-    const response = await http.get(`${API_BASE}/orgs/?${params}`)
-    // if (!response.ok) throw new Error('获取组织列表失败');
-    return response;
+    const response = await http.get(`${API_BASE}/orgs/?${params}`);
+    
+    // 处理响应，确保返回正确的格式
+    if (response && response.data && typeof response.total === 'number') {
+      return {
+        data: response.data,
+        total: response.total
+      };
+    } else if (Array.isArray(response)) {
+      // 兼容旧格式，为了平滑过渡
+      return {
+        data: response,
+        total: 0 // 实际应该从其他地方获取总条数
+      };
+    }
+    
+    return {
+      data: [],
+      total: 0
+    };
   },
 
 

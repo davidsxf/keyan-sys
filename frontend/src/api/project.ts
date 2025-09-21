@@ -145,14 +145,20 @@ getLevelChoices: async (): Promise<Choice[]> => {
     return await http.get(`${API_BASE}/type/choices`);
   },
 
-  // 获取组织选项
-  // getOrgChoices: async (): Promise<Choice[]> => {
-  //   // 统一使用 http 工具，修复 URL 路径
-  //   return await http.get(`${API_BASE}/source/choices`);
-  // },
+  // 获取项目来源选项
+  getSourceChoices: async (): Promise<Choice[]> => {
+    return await http.get(`${API_BASE}/source/choices`);
+  },
+
+  // 获取项目负责人变更记录
+  getProjectLeaderChanges: async (projectId: number, params?: any): Promise<{ results: any[]; count: number }> => {
+    return await http.get(`${API_BASE}/${projectId}/leader-changes`, { params });
+  },
+
+}; 
 
 
-};
+
 
 
 

@@ -29,10 +29,31 @@
             />
           </el-select>
         </el-form-item>
-       
+        <!-- 项目级别 -->
+        <el-form-item label="项目级别">
+          <el-select v-model="filterForm.level" placeholder="请选择项目级别" clearable style="width: 120px">
+            <el-option
+              v-for="item in levelChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
         <!-- 项目类别 -->
         <el-form-item label="项目类别">
-          <el-select v-model="filterForm.category_id" placeholder="请选择类别" clearable style="width: 100px">
+          <el-select v-model="filterForm.type" placeholder="请选择项目类别" clearable style="width: 120px">
+            <el-option
+              v-for="item in typeChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <!-- 项目类型 -->
+        <el-form-item label="项目类型">
+          <el-select v-model="filterForm.category_id" placeholder="请选择项目类型" clearable filterable style="width: 120px">
             <el-option
               v-for="item in categoryChoices"
               :key="item.value"
@@ -43,7 +64,14 @@
         </el-form-item>
         <!-- 项目来源 -->
         <el-form-item label="项目来源">
-          <el-input v-model="filterForm.source" placeholder="请输入来源" clearable />
+          <el-select v-model="filterForm.source" placeholder="请选择项目来源" clearable filterable style="width: 120px">
+            <el-option
+              v-for="item in sourceChoices"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <!-- 项目承担方式 -->
         <el-form-item label="项目承担方式">
@@ -124,6 +152,13 @@
         </el-table-column>
       </el-table>
 
+      <!-- 添加预算统计信息 -->
+      <div class="budget-summary">
+        <div class="summary-item">
+          <span class="summary-label">统计预算(万元) 总数：</span>
+          <span class="summary-value">{{ formatCurrency(totalBudget) }}</span>
+        </div>
+      </div>
 
       <!-- 分页 -->
       <div class="pagination">
@@ -164,8 +199,10 @@
           <el-descriptions-item label="项目名称">{{ selectedProject.title }}</el-descriptions-item>
           <el-descriptions-item label="项目负责人">{{ selectedProject.leader_name }}</el-descriptions-item>
           <el-descriptions-item label="项目状态"><el-tag :type="getStatusTagType(selectedProject.status)">{{ selectedProject.status_display }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="项目类别">{{ selectedProject.category_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
-          <el-descriptions-item label="项目类型">{{ selectedProject.type_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
+<el-descriptions-item label="项目级别">{{ selectedProject.level_name || '-' }}</el-descriptions-item> <!-- 添加项目级别显示，设置默认值 -->
+
+          <el-descriptions-item label="项目类别">{{ selectedProject.type_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
+                    <el-descriptions-item label="项目类型">{{ selectedProject.category_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
           <el-descriptions-item label="项目来源">{{ selectedProject.source_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
           <el-descriptions-item label="承担方式">{{ selectedProject.undertake_display }}</el-descriptions-item>
           <el-descriptions-item label="预算(万元)">{{ selectedProject.budget ? formatCurrency(selectedProject.budget) : '-' }}</el-descriptions-item>
@@ -181,7 +218,7 @@
 
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox, ElDialog, ElDescriptions, ElDescriptionsItem, ElTag } from 'element-plus';
 import { Project, ProjectFilter } from '@/api/project';
 import { projectApi } from '@/api/project';
@@ -194,21 +231,26 @@ const dialogVisible = ref(false);
 const currentProject = ref<Project | null>(null);
 const statusChoices = ref<any[]>([]);
 const undertakeChoices = ref<any[]>([]);
+const levelChoices = ref<any[]>([]); // 项目级别选择
+const typeChoices = ref<any[]>([]); // 项目类别选择
 // 项目详情对话框相关变量
 const detailDialogVisible = ref(false);
 const selectedProject = ref<Project | null>(null);
 
+const sourceChoices = ref<any[]>([]); // 项目来源选择
 
 const filterForm = ref<ProjectFilter>({
   title: '',
   number: '',
+  level: '', // 项目级别
+  type: '', // 项目类别
   category_id: null,
   source: null,
   undertake: '',
   status: '',
-  leader_id: null, // 添加缺失的字段
-  start_date: null, // 添加缺失的字段
-  end_date: null, // 添加缺失的字段
+  leader_id: null,
+  start_date: null,
+  end_date: null,
 });
 const categoryChoices = ref<any[]>([]);
 const leaderChoices = ref<any[]>([]);
@@ -218,6 +260,13 @@ const pagination = ref({
   current: 1,
   size: 10,
   total: 0,
+});
+
+// 计算预算总数
+const totalBudget = computed(() => {
+  return projects.value.reduce((sum, project) => {
+    return sum + (project.budget || 0);
+  }, 0);
 });
 
 
@@ -242,7 +291,6 @@ const loadProjects = async () => {
       params.category_id = filterForm.value.category_id;
     }
     if (filterForm.value.source) {
-      // 保持原样，传递字符串值用于模糊检索
       params.source = filterForm.value.source;
     }
     if (filterForm.value.undertake) {
@@ -252,10 +300,16 @@ const loadProjects = async () => {
     if (filterForm.value.leader_id) {
       params.leader_id = filterForm.value.leader_id;
     }
+    // 添加项目级别和类别的筛选
+    if (filterForm.value.level) {
+      params.level = filterForm.value.level;
+    }
+    if (filterForm.value.type) {
+      params.type = filterForm.value.type;
+    }
     // 修复日期格式问题，确保日期转换为字符串
     if (filterForm.value.start_date) {
       const date = new Date(filterForm.value.start_date);
-      // 使用更可靠的日期格式化方法，避免时区问题
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -263,7 +317,6 @@ const loadProjects = async () => {
     }
     if (filterForm.value.end_date) {
       const date = new Date(filterForm.value.end_date);
-      // 使用更可靠的日期格式化方法，避免时区问题
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -274,14 +327,7 @@ const loadProjects = async () => {
     params.page = pagination.value.current;
     params.size = pagination.value.size;
 
-    // 打印调试信息
-    // console.log('请求参数:', params);
-    
     const response = await projectApi.getProjects(params);
-    // 打印调试信息
-    // 添加调试代码，检查返回的项目数据
-    // console.log('项目列表返回数据:', response.items);
-    // console.log('第一个项目的类别和来源数据:', response.items[0]?.category_id, response.items[0]?.category_name, response.items[0]?.source_id, response.items[0]?.source_name);
     projects.value = response.items;
     pagination.value.total = response.total;
   } catch (error) {
@@ -295,20 +341,43 @@ const loadProjects = async () => {
 // 加载选项数据
 const loadChoices = async () => {
   try {
-    const [statusRes, undertakeRes, categoryRes, typeRes, leaderRes] = await Promise.all([
+    const [statusRes, undertakeRes, categoryRes, typeRes, leaderRes, levelRes, sourceRes] = await Promise.all([
       projectApi.getStatusChoices(),
       projectApi.getUndertakeChoices(),
       projectApi.getCategoryChoices(),
       projectApi.getTypeChoices(),
-      projectApi.getLeaderChoices()
+      projectApi.getLeaderChoices(),
+      projectApi.getLevelChoices(), // 加载项目级别选项
+      projectApi.getSourceChoices() // 加载项目来源选项
     ]);
     statusChoices.value = statusRes;
     undertakeChoices.value = undertakeRes;
-    categoryChoices.value = categoryRes; // 使用类别API结果作为类别选项
+    categoryChoices.value = categoryRes;
+    typeChoices.value = typeRes; // 项目类别选项
     leaderChoices.value = leaderRes;
+    levelChoices.value = levelRes; // 项目级别选项
+    sourceChoices.value = sourceRes; // 项目来源选项
   } catch (error) {
     ElMessage.error('获取选项数据失败');
   }
+};
+
+// 重置筛选条件
+const resetFilter = () => {
+  filterForm.value = {
+    title: '',
+    number: '',
+    status: '',
+    category_id: null,
+    source: null,
+    undertake: '',
+    leader_id: null,
+    start_date: null,
+    end_date: null,
+    level: '', // 重置项目级别
+    type: '' // 重置项目类别
+  };
+  loadProjects();
 };
 
 
@@ -365,23 +434,6 @@ const handleFormSuccess = () => {
 };
 
 
-// 重置筛选条件
-const resetFilter = () => {
-  filterForm.value = {
-    title: '',
-    number: '',
-    status: '',
-    category_id: null,
-    source: null,
-    undertake: '',
-    leader_id: null,
-    start_date: null,
-    end_date: null
-  };
-  loadProjects();
-};
-
-
 // 状态标签类型
 const getStatusTagType = (status: string) => {
   const map: { [key: string]: string } = {
@@ -415,6 +467,31 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* 预算统计样式 */
+.budget-summary {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+}
+
+.summary-label {
+  margin-right: 5px;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-weight: bold;
+  color: #409eff;
 }
 
 .pagination {

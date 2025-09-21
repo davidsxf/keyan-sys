@@ -158,7 +158,9 @@ const dialogTitle = computed(() => isEditing.value ? '编辑组织' : '新增组
 const loadOrgs = async () => {
   try {
     loading.value = true
-    orgs.value = await orgApi.getOrgs(searchKeyword.value, currentPage.value, pageSize.value)
+    const result = await orgApi.getOrgs(searchKeyword.value, currentPage.value, pageSize.value)
+    orgs.value = result.data
+    totalCount.value = result.total // 设置总条数
   } catch (error) {
     ElMessage.error('获取组织列表失败')
   } finally {
