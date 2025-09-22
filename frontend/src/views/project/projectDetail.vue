@@ -102,12 +102,7 @@
                     <span class="stat-value expense">{{ formatCurrency(expenseBudget) }}</span>
                   </div>
                 </el-col>
-                <!-- <el-col :span="6">
-                  <div class="stat-item">
-                    <span class="stat-label">统筹预算</span>
-                    <span class="stat-value tongchou">{{ formatCurrency(tongchouBudget) }}</span>
-                  </div>
-                </el-col> -->
+ 
                 <el-col :span="6">
                   <div class="stat-item">
                     <span class="stat-label">留所经费</span>
@@ -120,22 +115,17 @@
             <!-- 预算表格 -->
             <el-table :data="budgets" v-loading="budgetsLoading">
               <el-table-column prop="name" label="预算名称" width="180" />
+              <el-table-column prop="amount" label="金额(万元)" width="120" align="right">
+                <template #default="{ row }">
+                  {{ formatCurrency(row.amount || 0) }}
+                </template>
+              </el-table-column>
               <el-table-column prop="year" label="年度" width="100" />
-              <el-table-column prop="income" label="到账(万元)" width="120" align="right">
+              <el-table-column prop="type" label="类型" width="120">
                 <template #default="{ row }">
-                  {{ formatCurrency(row.income || 0) }}
+                  {{ getBudgetTypeDisplay(row.type) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="expense" label="外拨经费(万元)" width="120" align="right">
-                <template #default="{ row }">
-                  {{ formatCurrency(row.expense || 0) }}
-                </template>
-              </el-table-column>
-              <!-- <el-table-column prop="tongchou" label="统筹(万元)" width="120" align="right">
-                <template #default="{ row }">
-                  {{ formatCurrency(row.tongchou || 0) }}
-                </template>
-              </el-table-column> -->
               <el-table-column prop="remark" label="备注" min-width="200" />
               <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
@@ -692,16 +682,16 @@ const documentDialogTitle = computed(() => currentDocument.value ? '编辑文档
 
 // 预算统计计算属性
 const incomeBudget = computed(() => {
-  return budgets.value.reduce((sum, item) => sum + (item.income || 0), 0);
+  return (budgets.value || [])
+    .filter(item => item.type === 'income')
+    .reduce((sum, item) => sum + (item.amount || 0), 0);
 });
 
 const expenseBudget = computed(() => {
-  return budgets.value.reduce((sum, item) => sum + (item.expense || 0), 0);
+  return (budgets.value || [])
+    .filter(item => item.type === 'expense')
+    .reduce((sum, item) => sum + (item.amount || 0), 0);
 });
-
-// const tongchouBudget = computed(() => {
-//   return budgets.value.reduce((sum, item) => sum + (item.tongchou || 0), 0);
-// });
 
 const netBudget = computed(() => {
   return incomeBudget.value - expenseBudget.value;
@@ -711,18 +701,11 @@ const netBudget = computed(() => {
 const budgetFormRules: FormRules = {
   name: [{ required: true, message: '请输入预算名称', trigger: 'blur' }],
   year: [{ required: true, message: '请输入年度', trigger: 'blur' }],
-  income: [
-    { required: true, message: '请输入收入金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '收入金额不能为负数', trigger: 'blur' }
-  ],
-  expense: [
-    { required: true, message: '请输入支出金额', trigger: 'blur' },
-    { type: 'number', min: 0, message: '支出金额不能为负数', trigger: 'blur' }
-  ],
-  // tongchou: [
-  //   { required: true, message: '请输入统筹金额', trigger: 'blur' },
-  //   { type: 'number', min: 0, message: '统筹金额不能为负数', trigger: 'blur' }
-  // ]
+  type: [{ required: true, message: '请选择预算类型', trigger: 'change' }],
+  amount: [
+    { required: true, message: '请输入金额', trigger: 'blur' },
+    { type: 'number', min: 0, message: '金额不能为负数', trigger: 'blur' }
+  ]
 };
 
 const participantFormRules: FormRules = {
@@ -778,6 +761,7 @@ const loadProjectBudgets = async () => {
   
   try {
     budgetsLoading.value = true;
+    console.log('加载项目预算:', selectedProjectId.value);
     // 查询单个项目的预算
     const { results } = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
     console.log('加载的预算数据:', results);
@@ -981,9 +965,8 @@ const resetBudgetForm = () => {
   Object.assign(budgetForm, {
     name: '',
     year: '',
-    income: 0,
-    expense: 0,
-    // tongchou: 0,
+    type: '',
+    amount: 0,
     remark: ''
   });
 };
@@ -1246,6 +1229,11 @@ const handleProjectChange = (projectId: number) => {
 // const handleBack = () => {
 //   router.push('/project');
 // };
+
+const getBudgetTypeDisplay = (type: string) => {
+  const typeMap = budgetTypeChoices.find(choice => choice.value === type);
+  return typeMap ? typeMap.label : type;
+};
 
 // 获取状态标签类型
 const getStatusTagType = (status: string) => {

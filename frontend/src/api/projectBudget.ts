@@ -49,8 +49,9 @@ export const projectBudgetApi = {
   },
   
   // 获取单个项目预算
-  getProjectBudget: async (id: number): Promise<ProjectBudget> => {
-    return await http.get(`${API_BASE}/budgets/${id}`);
+  getProjectBudget: async (id: number): Promise<{ results: ProjectBudget[] }> => {
+    // console.log('获取项目预算:', id);
+    return await http.get(`${API_BASE}/project/${id}`);
   },
   
   // 创建项目预算

@@ -70,7 +70,7 @@ class CustomPagination(PageNumberPagination):
     page_size_query_param = "size"
 
 
-@router.get("", response=List[ProjectOut])  # 移除重复的 '/projects'
+# @router.get("", response=List[ProjectOut])  # 移除重复的 '/projects'
 # @paginate(CustomPagination)
 # 移除分页装饰器，手动实现分页
 @router.get("")
@@ -250,12 +250,10 @@ def list_project_budgets(request, filters: ProjectBudgetFilter = Query(None)):
     return queryset
 
 
-@router.get("/budget/budgets/{budget_id}", response=List[ProjectBudgetOut])
-def get_project_budget(request, budget_id: int):
-    """获取单个项目预算详情"""
-    # budget = get_object_or_404(ProjectBudget.objects.select_related('project'), id=budget_id)
-    budgets = ProjectBudget.objects.filter(id=budget_id).select_related('project')
-    return budgets
+@router.get("/budget/project/{project_id}", response=List[ProjectBudgetOut])
+def get_project_budget(project_id: int):
+    # 直接返回 QuerySet 对象，FastAPI 会自动将其转换为 List[ProjectBudgetOut]
+    return ProjectBudget.objects.filter(project_id=project_id)
 
 
 @router.post("/budget/budgets", response=ProjectBudgetOut)

@@ -5,7 +5,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
 # 导入通用的编码处理类
-from common.admin import EncodingAwareImportExportModelAdmin
+from import_export.admin import ImportExportModelAdmin
 
 # 定义资源类
 class OrgResource(resources.ModelResource):
@@ -22,7 +22,7 @@ class CategoryResource(resources.ModelResource):
         fields = ('id', 'name', 'parent', 'weight', 'sort_order', 'created_at', 'updated_at')
 
 @admin.register(Org)
-class OrgAdmin(EncodingAwareImportExportModelAdmin):
+class OrgAdmin(ImportExportModelAdmin):
     resource_class = OrgResource
     list_display = ('id', 'name', 'description', 'phone', 'email', 'org_type', 'created_at', 'updated_at')
     search_fields = ('name', 'description', 'phone', 'email', 'org_type')
@@ -30,7 +30,7 @@ class OrgAdmin(EncodingAwareImportExportModelAdmin):
     ordering = ('-created_at',)
 
 @admin.register(Category)
-class CategoryAdmin(EncodingAwareImportExportModelAdmin):
+class CategoryAdmin(ImportExportModelAdmin):
     resource_class = CategoryResource
     list_display = ('id', 'name', 'parent', 'weight', 'sort_order', 'created_at', 'updated_at')
     search_fields = ('name',)

@@ -6,7 +6,7 @@ from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget, DateWidget, DateTimeWidget
 
 # 导入通用的编码处理类
-from common.admin import EncodingAwareImportExportModelAdmin
+# from common.admin import EncodingAwareImportExportModelAdmin
 
 # 定义资源类
 class DepartmentResource(resources.ModelResource):
@@ -19,7 +19,7 @@ class DepartmentResource(resources.ModelResource):
 
 # 使用通用的编码处理类
 @admin.register(Department)
-class DepartmentAdmin(EncodingAwareImportExportModelAdmin):
+class DepartmentAdmin(ImportExportModelAdmin):
     resource_class = DepartmentResource
     list_display = ('id', 'name', 'description', 'parent', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
@@ -47,8 +47,8 @@ class StaffResource(resources.ModelResource):
         report_skipped = False
 
 @admin.register(Staff)
-# 修改为使用 EncodingAwareImportExportModelAdmin 类
-class StaffAdmin(EncodingAwareImportExportModelAdmin):
+# 修改为使用 ImportExportModelAdmin 类
+class StaffAdmin(ImportExportModelAdmin):
     resource_class = StaffResource
     list_display = (
         'id', 'name', 'gender', 'birthday', 'email', 'entry_date',
