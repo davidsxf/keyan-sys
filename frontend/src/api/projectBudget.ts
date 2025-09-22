@@ -61,12 +61,14 @@ export const projectBudgetApi = {
   
   // 更新项目预算
   updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
-    return await http.post(`${API_BASE}/budgets/${id}`, { data }, { method: 'PUT' });
+    // 直接传递数据对象，而不是包装在data属性中
+    return await http.post(`${API_BASE}/${id}`, { data }, { method: 'PUT' });
   },
-  
+
   // 删除项目预算
   deleteProjectBudget: async (id: number): Promise<void> => {
-    await http.post(`${API_BASE}/budgets/${id}`, {}, { method: 'DELETE' });
+    // 同样修复删除请求，使用正确的DELETE请求方式
+    return await http.request('delete', `${API_BASE}/budgets/${id}`);
   },
   
   // 获取预算类型选项

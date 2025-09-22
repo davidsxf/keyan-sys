@@ -251,9 +251,9 @@ def list_project_budgets(request, filters: ProjectBudgetFilter = Query(None)):
 
 
 @router.get("/budget/project/{project_id}", response=List[ProjectBudgetOut])
-def get_project_budget(project_id: int):
+def get_project_budget(request, project_id: int):
     # 直接返回 QuerySet 对象，FastAPI 会自动将其转换为 List[ProjectBudgetOut]
-    return ProjectBudget.objects.filter(project_id=project_id)
+    return ProjectBudget.objects.filter(project_id=project_id).select_related('project')
 
 
 @router.post("/budget/budgets", response=ProjectBudgetOut)
@@ -270,11 +270,13 @@ def create_project_budget(request, data: ProjectBudgetIn):
     return budget
 
 
-@router.put("/budget/budgets/{budget_id}", response=ProjectBudgetOut)
+@router.put("/budget/{budget_id}", response=ProjectBudgetOut)
 def update_project_budget(request, budget_id: int, data: ProjectBudgetIn):
     """更新项目预算信息"""
+    print(budget_id)
     budget = get_object_or_404(ProjectBudget, id=budget_id)
     update_data = data.dict(exclude_unset=True)
+    # print(update_data)
     
     # 处理project_id字段
     if 'project_id' in update_data:

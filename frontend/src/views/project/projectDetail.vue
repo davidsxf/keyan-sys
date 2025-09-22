@@ -69,8 +69,8 @@
             
             <!-- 预算搜索表单 -->
             <el-form :model="budgetFilter" inline style="margin-bottom: 15px;">
-              <el-form-item label="预算名称">
-                <el-input v-model="budgetFilter.name" placeholder="请输入预算名称" clearable />
+              <el-form-item label="经费名称">
+                <el-input v-model="budgetFilter.name" placeholder="请输入经费名称" clearable />
               </el-form-item>
               <el-form-item label="年度">
                 <el-input v-model="budgetFilter.year" placeholder="请输入年度" clearable />
@@ -114,7 +114,7 @@
             
             <!-- 预算表格 -->
             <el-table :data="budgets" v-loading="budgetsLoading">
-              <el-table-column prop="name" label="预算名称" width="180" />
+              <el-table-column prop="name" label="经费名称" width="180" />
               <el-table-column prop="amount" label="金额(万元)" width="120" align="right">
                 <template #default="{ row }">
                   {{ formatCurrency(row.amount || 0) }}
@@ -761,10 +761,10 @@ const loadProjectBudgets = async () => {
   
   try {
     budgetsLoading.value = true;
-    console.log('加载项目预算:', selectedProjectId.value);
-    // 查询单个项目的预算
-    const { results } = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
-    console.log('加载的预算数据:', results);
+    // console.log('加载项目预算:', selectedProjectId.value);
+    // 正确解构 results 字段
+    const results  = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
+    // console.log('加载的预算数据:', results);
     budgets.value = results;
   } catch (error) {
     ElMessage.error('加载预算数据失败');
@@ -919,7 +919,7 @@ const deleteBudget = async (row: any) => {
       type: 'warning'
     });
     
-    await projectBudgetApi.deleteBudget(row.id);
+    await projectBudgetApi.deleteProjectBudget(row.id);
     ElMessage.success('删除成功');
     loadProjectBudgets();
   } catch (error) {
@@ -1231,7 +1231,8 @@ const handleProjectChange = (projectId: number) => {
 // };
 
 const getBudgetTypeDisplay = (type: string) => {
-  const typeMap = budgetTypeChoices.find(choice => choice.value === type);
+  // 修正：通过 .value 访问 ref 数组
+  const typeMap = budgetTypeChoices.value.find(choice => choice.value === type);
   return typeMap ? typeMap.label : type;
 };
 
