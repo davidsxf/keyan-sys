@@ -59,11 +59,17 @@ export const projectBudgetApi = {
     return await http.post(`${API_BASE}/budgets`, { data });
   },
   
+
+  // updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
+  //   console.log('更新项目预算:', id, data);
+  //   return await http.post(`${API_BASE}/${id}`, data, { method: 'PUT' });
+  // },
+
   // 更新项目预算
-  updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
-    // 直接传递数据对象，而不是包装在data属性中
-    return await http.post(`${API_BASE}/${id}`, { data }, { method: 'PUT' });
-  },
+updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
+  console.log('更新项目预算:', id, data);
+  return await http.request('put', `${API_BASE}/${id}`, { data });
+},
 
   // 删除项目预算
   deleteProjectBudget: async (id: number): Promise<void> => {

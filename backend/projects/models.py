@@ -267,12 +267,45 @@ class ProjectBudgetType(models.TextChoices):
     # OTHER = "OTHER", _("其他")
 
 class ProjectBudget(models.Model):
-    project = models.ForeignKey(Project, related_name='budgets', on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    year = models.IntegerField(null=True, blank=True)
-    type = models.CharField(max_length=20, choices=ProjectBudgetType.choices)
-    remark = models.TextField(null=True, blank=True)
+    # 移除手动定义的id字段，Django会自动创建自增主键
+    project = models.ForeignKey(
+        Project, 
+        related_name='budgets',
+        on_delete=models.CASCADE,  # 明确指定级联删除行为
+        verbose_name=_('所属项目')  # 添加verbose_name提高可读性
+    )
+    name = models.CharField(
+        max_length=255, 
+        verbose_name=_('预算名称'),
+        help_text=_('预算项的具体名称')
+    )
+    amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,  # 允许表单提交空值
+        verbose_name=_('金额(万元)'),
+        help_text=_('预算金额，单位为万元')
+    )
+    year = models.IntegerField(
+        null=True, 
+        blank=True,
+        verbose_name=_('年度'),
+        help_text=_('预算所属的年份')
+    )
+    type = models.CharField(
+        max_length=20,
+        choices=ProjectBudgetType.choices,  # 直接使用choices属性
+        default=ProjectBudgetType.INCOME,  # 使用枚举成员而非.value
+        verbose_name=_('类型'),
+        help_text=_('预算类型：收入、支出、统筹或其他')
+    )
+    remark = models.TextField(
+        null=True, 
+        blank=True,
+        verbose_name=_('备注'),
+        help_text=_('关于预算项的补充说明')
+    )
     updated_at = models.DateTimeField(
         auto_now=True,
         verbose_name=_('更新时间')

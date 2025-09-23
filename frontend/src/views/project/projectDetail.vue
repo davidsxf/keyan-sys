@@ -69,14 +69,19 @@
             
             <!-- 预算搜索表单 -->
             <el-form :model="budgetFilter" inline style="margin-bottom: 15px;">
-              <el-form-item label="经费名称">
-                <el-input v-model="budgetFilter.name" placeholder="请输入经费名称" clearable />
-              </el-form-item>
-              <el-form-item label="年度">
-                <el-input v-model="budgetFilter.year" placeholder="请输入年度" clearable />
+              
+              <el-form-item label="年度" style="width: 200px;">
+                <el-select v-model="budgetFilter.year" placeholder="请选择年度" clearable @change="loadProjectBudgets">
+                  <el-option
+                    v-for="item in yearOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="loadProjectBudgets">搜索</el-button>
+       
                 <el-button @click="resetBudgetFilter">重置</el-button>
               </el-form-item>
             </el-form>
@@ -585,13 +590,13 @@ const budgetPagination = reactive({
   total: 0
 });
 const budgetFilter = reactive({
-  name: '',
   year: ''
 });
 const budgetDialogVisible = ref(false);
 const currentBudget = ref<any | null>(null);
 const budgetFormRef = ref<FormInstance>();
 const budgetForm = reactive({
+  project_id: selectedProjectId.value || undefined,
   name: '',
   year: new Date().getFullYear(), // 默认当前年份
   type: '',
@@ -761,11 +766,17 @@ const loadProjectBudgets = async () => {
   
   try {
     budgetsLoading.value = true;
-    // console.log('加载项目预算:', selectedProjectId.value);
-    // 正确解构 results 字段
-    const results  = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
-    // console.log('加载的预算数据:', results);
-    budgets.value = results;
+
+    const results = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
+    
+    // 应用年度筛选
+    let filteredResults = results;
+    if (budgetFilter.year) {
+      filteredResults = results.filter(item => item.year === budgetFilter.year);
+    }
+    
+    budgets.value = filteredResults;
+    budgetPagination.total = filteredResults.length; // 设置筛选后的总条数
   } catch (error) {
     ElMessage.error('加载预算数据失败');
     console.error('加载预算数据失败:', error);
@@ -902,6 +913,7 @@ const showBudgetDialog = () => {
 const editBudget = (row: any) => {
   currentBudget.value = { ...row };
   Object.assign(budgetForm, {
+    project_id: selectedProjectId.value || undefined,
     name: row.name || '',
     year: row.year || new Date().getFullYear(), // 编辑时如果没有年份，默认当前年份
     type: row.type || '',
