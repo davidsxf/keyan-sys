@@ -163,25 +163,7 @@
             </div>
             
             <!-- 参与人员搜索表单 -->
-            <el-form :model="participantFilter" inline style="margin-bottom: 15px;">
-              <el-form-item label="员工姓名">
-                <el-input v-model="participantFilter.staff_name" placeholder="请输入员工姓名" clearable />
-              </el-form-item>
-              <el-form-item label="角色">
-                <el-select v-model="participantFilter.role" placeholder="请选择角色" clearable>
-                  <el-option
-                    v-for="role in roleChoices"
-                    :key="role.value"
-                    :label="role.label"
-                    :value="role.value"
-                  />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="loadProjectParticipants">搜索</el-button>
-                <el-button @click="resetParticipantFilter">重置</el-button>
-              </el-form-item>
-            </el-form>
+   
             
             <!-- 参与人员表格 -->
             <el-table :data="participants" v-loading="participantsLoading">
@@ -382,7 +364,7 @@
             <el-option
               v-for="staff in staffOptions"
               :key="staff.id"
-              :label="staff.name + '(' + staff.number + ')'"
+              :label="staff.name"
               :value="staff.id"
             />
           </el-select>
@@ -629,14 +611,15 @@ const participantPagination = reactive({
   size: 10,
   total: 0
 });
-const participantFilter = reactive({
-  staff_name: '',
-  role: ''
-});
+// const participantFilter = reactive({
+//   staff_name: '',
+//   role: ''
+// });
 const participantDialogVisible = ref(false);
 const currentParticipant = ref<any | null>(null);
 const participantFormRef = ref<FormInstance>();
 const participantForm = reactive({
+  project_id: selectedProjectId.value || undefined,
   staff_id: undefined,
   role: '',
   join_date: '',
@@ -767,7 +750,7 @@ const loadProjectBudgets = async () => {
   try {
     budgetsLoading.value = true;
 
-    const results = await projectBudgetApi.getProjectBudget(selectedProjectId.value);
+    const results = await projectBudgetApi.getProjectBudget(selectedProjectId.value) || [];
     
     // 应用年度筛选
     let filteredResults = results;
@@ -791,17 +774,22 @@ const loadProjectParticipants = async () => {
   
   try {
     participantsLoading.value = true;
-    const params = {
-      ...participantFilter,
-      page: participantPagination.current,
-      page_size: participantPagination.size
-    };
-    const { results, count } = await participantApi.getProjectParticipants(selectedProjectId.value, params);
-    participants.value = results;
-    participantPagination.total = count;
+    const { results, count } = await participantApi.getProjectParticipants(selectedProjectId.value) || { results: [], count: 0 };
+    
+    // 确保 results 是一个数组
+    participants.value = Array.isArray(results) ? results : [];
+    participantPagination.total = count || 0;
+    
+    // 如果没有数据，可以显示提示信息
+    if ((participants.value || []).length === 0) {
+      console.log('当前项目没有参与人员数据');
+    }
   } catch (error) {
     ElMessage.error('加载参与人员数据失败');
     console.error('加载参与人员数据失败:', error);
+    // 出错时确保 participants 是一个空数组
+    participants.value = [];
+    participantPagination.total = 0;
   } finally {
     participantsLoading.value = false;
   }
@@ -855,21 +843,17 @@ const loadProjectLeaderChanges = async () => {
 
 // 搜索员工
 const remoteSearchStaff = async (query: string) => {
-  if (!query) {
-    staffOptions.value = [];
-    return;
-  }
-  
   try {
     staffLoading.value = true;
-    const staffs = await staffApi.getStaffs(query, undefined, undefined, undefined, 1, 100);
-    staffOptions.value = staffs.map((staff: any) => ({
+    const response = await staffApi.getStaffs(query, undefined, undefined, undefined, 1, 100);
+    staffOptions.value = response.data.map((staff: any) => ({
       id: staff.id,
       name: staff.name,
       number: staff.number
     }));
   } catch (error) {
     console.error('搜索员工失败:', error);
+    ElMessage.error('搜索员工失败，请重试');
   } finally {
     staffLoading.value = false;
   }
@@ -944,20 +928,30 @@ const deleteBudget = async (row: any) => {
 const submitBudgetForm = async () => {
   if (!budgetFormRef.value) return;
   
+  // 先检查项目是否已选择
+  if (!budgetForm.project_id) {
+    ElMessage.warning('请先选择项目');
+    return;
+  }
+  
   try {
     const valid = await budgetFormRef.value.validate();
     if (!valid) return;
     
+    // 验证项目是否存在于项目列表中
+    const projectExists = projects.value.some(p => p.id === budgetForm.project_id);
+    if (!projectExists) {
+      ElMessage.error('选择的项目不存在');
+      return;
+    }
+    
     if (currentBudget.value) {
-      // 更新预算 - 修改为正确的方法名
+      // 更新预算
       await projectBudgetApi.updateProjectBudget(currentBudget.value.id, budgetForm);
       ElMessage.success('更新成功');
     } else {
-      // 创建预算 - 修改为正确的方法名和参数格式
-      await projectBudgetApi.createProjectBudget({
-        ...budgetForm,
-        project_id: selectedProjectId.value
-      });
+      // 创建预算
+      await projectBudgetApi.createProjectBudget(budgetForm);
       ElMessage.success('创建成功');
     }
     
@@ -1031,12 +1025,19 @@ const deleteParticipant = async (row: any) => {
 const submitParticipantForm = async () => {
   if (!participantFormRef.value) return;
   
+  // 检查项目是否已选择
+  if (!selectedProjectId.value) {
+    ElMessage.warning('请先选择项目');
+    return;
+  }
+
   try {
     const valid = await participantFormRef.value.validate();
+    
     if (!valid) return;
     
-    // 检查员工是否已经参与该项目
-    const existingParticipants = participants.value.filter(p => p.staff_id === participantForm.staff_id);
+    // 检查员工是否已经参与该项目 - 添加空值检查
+    const existingParticipants = (participants.value || []).filter(p => p.staff_id === participantForm.staff_id);
     if (existingParticipants.length > 0 && !currentParticipant.value) {
       ElMessage.warning('该员工已经是项目参与人员');
       return;
@@ -1048,12 +1049,14 @@ const submitParticipantForm = async () => {
       ElMessage.success('更新成功');
     } else {
       // 创建参与人员
-      await participantApi.createParticipant(selectedProjectId.value, participantForm);
+      participantForm.project_id = selectedProjectId.value;
+      await participantApi.createParticipant(participantForm);
       ElMessage.success('创建成功');
     }
     
     participantDialogVisible.value = false;
-    loadProjectParticipants();
+    // 确保这里重新加载参与人员列表
+    loadProjectParticipants(); // 这一行非常重要，确保列表刷新
   } catch (error) {
     if (error instanceof Error) {
       ElMessage.error(error.message || '操作失败');
@@ -1073,14 +1076,14 @@ const resetParticipantForm = () => {
   });
 };
 
-const resetParticipantFilter = () => {
-  Object.assign(participantFilter, {
-    staff_name: '',
-    role: ''
-  });
-  participantPagination.current = 1;
-  loadProjectParticipants();
-};
+// const resetParticipantFilter = () => {
+//   Object.assign(participantFilter, {
+//     staff_name: '',
+//     role: ''
+//   });
+//   participantPagination.current = 1;
+//   loadProjectParticipants();
+// };
 
 // 文档相关方法
 const showDocumentDialog = () => {
@@ -1285,6 +1288,25 @@ const formatFileSize = (bytes: number) => {
   }
 };
 
+// 添加loadRoleChoices函数
+const loadRoleChoices = async () => {
+  try {
+    // 这里假设API中有获取角色列表的接口
+    // 如果没有相关API，可以直接使用上面的静态数据初始化方式
+    // const response = await participantApi.getRoleChoices();
+    // roleChoices.value = response.data;
+    
+    // 使用静态数据作为替代
+    roleChoices.value = [
+      { label: '成员', value: 'member' },
+      { label: '顾问', value: 'advisor' }
+    ];
+  } catch (error) {
+    ElMessage.error('加载角色选项失败');
+    console.error('加载角色选项失败:', error);
+  }
+};
+
 // 监听项目ID变化
 watch(selectedProjectId, (newId) => {
   if (newId) {
@@ -1391,7 +1413,7 @@ const handleCloseChangeLeaderDialog = () => {
 
 // 初始化
 onMounted(() => {
-  // loadRoleChoices();
+  loadRoleChoices(); // 取消注释并调用
   loadProjects(); // 加载项目列表
   if (selectedProjectId.value) {
     loadProjectDetail();

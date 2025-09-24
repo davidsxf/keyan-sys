@@ -246,18 +246,8 @@ class ProjectLeaderChange(models.Model):
         verbose_name=_('创建时间')
     )
 
-### 项目预算
-# from django.db import models
-# from django.utils.translation import gettext_lazy as _
 
 
-# 修复前
-# 将普通Enum改为Django的TextChoices，与项目中其他枚举类型保持一致
-# def ProjectBudgetType(models.TextChoices):
-#     INCOME = "INCOME", _("收入")
-#     EXPENSE = "EXPENSE", _("支出")
-#     COORDINATION = "COORDINATION", _("统筹")
-#     OTHER = "OTHER", _("其他")
 
 # 修复后
 class ProjectBudgetType(models.TextChoices):

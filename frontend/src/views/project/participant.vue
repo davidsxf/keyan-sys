@@ -342,7 +342,7 @@ const loadAllStaffs = async () => {
   try {
     // 获取所有员工，不使用搜索条件
     const response = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 100);
-    staffs.value = response || [];
+    staffs.value = response.data || []; // 从response.data获取员工列表
   } catch (error) {
     ElMessage.error('加载员工列表失败');
     console.error('加载员工列表失败:', error);
@@ -362,7 +362,7 @@ const remoteSearchStaff = async (query: string) => {
   staffLoading.value = true;
   try {
     const response = await staffApi.getStaffs(query, undefined, undefined, undefined, 1, 50);
-    staffs.value = response || [];
+    staffs.value = response.data || []; // 从response.data获取员工列表
   } catch (error) {
     ElMessage.error('搜索员工失败');
     console.error('搜索员工失败:', error);

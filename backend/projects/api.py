@@ -425,6 +425,7 @@ def delete_project_participant(request, participant_id: int):
 @paginate(CustomPagination)
 def list_project_participants_by_project(request, project_id: int):
     """获取指定项目的所有参与人员"""
+    print('list_project_participants_by_project project_id:', project_id)
     project = get_object_or_404(Project, id=project_id)
     participants = ProjectStaff.objects.filter(project=project).select_related('staff')
     return participants
