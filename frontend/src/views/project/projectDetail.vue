@@ -59,7 +59,7 @@
     
     <!-- Tab分页部分 -->
     <el-card class="project-tabs-card" style="margin-top: 20px;">
-      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+     <el-tabs :model-value="activeTab" @tab-click="handleTabClick">
         <el-tab-pane label="项目经费" name="budget">
           <div class="tab-content">
             <div class="tab-header">
@@ -774,11 +774,12 @@ const loadProjectParticipants = async () => {
   
   try {
     participantsLoading.value = true;
-    const { results, count } = await participantApi.getProjectParticipants(selectedProjectId.value) || { results: [], count: 0 };
+    const { items, total } = await participantApi.getProjectParticipants(selectedProjectId.value) || { items: [], total: 0 };
     
     // 确保 results 是一个数组
-    participants.value = Array.isArray(results) ? results : [];
-    participantPagination.total = count || 0;
+    console.log("total是:",total)
+    participants.value = Array.isArray(items) ? items : [];
+    participantPagination.total = total || 0;
     
     // 如果没有数据，可以显示提示信息
     if ((participants.value || []).length === 0) {
@@ -786,7 +787,6 @@ const loadProjectParticipants = async () => {
     }
   } catch (error) {
     ElMessage.error('加载参与人员数据失败');
-    console.error('加载参与人员数据失败:', error);
     // 出错时确保 participants 是一个空数组
     participants.value = [];
     participantPagination.total = 0;
@@ -868,23 +868,58 @@ const handleStaffSelectVisibleChange = (visible: boolean) => {
 
 // 处理标签页点击
 const handleTabClick = (tab: any) => {
-  activeTab.value = tab.name;
   
-  // 根据选中的标签页加载对应数据
-  switch (tab.name) {
-    case 'budget':
-      loadProjectBudgets();
-      break;
-    case 'participant':
-      loadProjectParticipants();
-      break;
-    case 'document':
-      loadProjectDocuments();
-      break;
-    case 'leaderChange':
-      loadProjectLeaderChanges();
-      break;
+  // 尝试获取标签页名称，兼容不同的Element Plus版本
+  let tabName = '';
+  
+  // 检查tab对象的结构，尝试获取标签页名称
+  if (tab && typeof tab === 'object') {
+    // 检查是否有paneName属性（这是错误信息中显示的属性）
+    if (tab.paneName) {
+      tabName = typeof tab.paneName === 'function' ? tab.paneName() : tab.paneName;
+    }
+    // 如果paneName是一个ComputedRef，尝试获取其value
+    else if (tab.paneName && tab.paneName.value !== undefined) {
+      tabName = tab.paneName.value;
+    }
+    // 回退到name属性
+    else if (tab.name) {
+      tabName = tab.name;
+    }
+    // 回退到props.name
+    else if (tab.props && tab.props.name) {
+      tabName = tab.props.name;
+    }
   }
+  
+  // 如果成功获取到标签页名称
+  if (tabName) {
+    // console.log('点击的标签页:', tabName);
+    // 手动更新activeTab的值
+    activeTab.value = tabName;
+    
+    // 根据选中的标签页加载对应数据
+    // switch (tabName) {
+    //   case 'budget':
+    //     loadProjectBudgets();
+    //     break;
+    //   case 'participant':
+    //     loadProjectParticipants();
+    //     break;
+    //   case 'document':
+    //     loadProjectDocuments();
+    //     break;
+    //   case 'leaderChange':
+    //     loadProjectLeaderChanges();
+    //     break;
+    //   default:
+    //     console.log('未知标签页名称:', tabName);
+    // }
+  } else {
+    console.error('无法获取标签页名称，参数结构为:', tab);
+  }
+  
+ 
 };
 
 // 预算相关方法
@@ -1291,10 +1326,6 @@ const formatFileSize = (bytes: number) => {
 // 添加loadRoleChoices函数
 const loadRoleChoices = async () => {
   try {
-    // 这里假设API中有获取角色列表的接口
-    // 如果没有相关API，可以直接使用上面的静态数据初始化方式
-    // const response = await participantApi.getRoleChoices();
-    // roleChoices.value = response.data;
     
     // 使用静态数据作为替代
     roleChoices.value = [
@@ -1307,16 +1338,49 @@ const loadRoleChoices = async () => {
   }
 };
 
-// 监听项目ID变化
+// 添加activeTab的watch监听来调试
+watch(activeTab, (newValue) => {
+  if(selectedProjectId.value){
+// 加载当前标签页的数据
+switch (newValue) {
+  case 'budget':
+    loadProjectBudgets();
+    break;
+  case 'participant':
+    loadProjectParticipants();
+    break;
+  case 'document':
+    loadProjectDocuments();
+    break;
+  case 'leaderChange':
+    loadProjectLeaderChanges();
+    break;
+}
+  }else{
+    // console.log('项目未选择，不加载数据');
+    ElMessage.warning('项目未选择，不加载数据');
+  }
+});
+
+// 添加对selectedProjectId的监听
 watch(selectedProjectId, (newId) => {
   if (newId) {
     loadProjectDetail();
-    
-    // 初始化时加载所有标签页数据
-    loadProjectBudgets();
-    loadProjectParticipants();
-    loadProjectDocuments();
-    loadProjectLeaderChanges();
+    // 根据当前活动标签页加载对应数据
+    switch (activeTab.value) {
+      case 'budget':
+        loadProjectBudgets();
+        break;
+      case 'participant':
+        loadProjectParticipants();
+        break;
+      case 'document':
+        loadProjectDocuments();
+        break;
+      case 'leaderChange':
+        loadProjectLeaderChanges();
+        break;
+    }
   }
 });
 
@@ -1413,14 +1477,24 @@ const handleCloseChangeLeaderDialog = () => {
 
 // 初始化
 onMounted(() => {
-  loadRoleChoices(); // 取消注释并调用
-  loadProjects(); // 加载项目列表
+  loadProjects();
   if (selectedProjectId.value) {
     loadProjectDetail();
-    loadProjectBudgets();
-    loadProjectParticipants();
-    loadProjectDocuments();
-    loadProjectLeaderChanges();
+    // 根据初始活动标签页加载对应数据
+    switch (activeTab.value) {
+      case 'budget':
+        loadProjectBudgets();
+        break;
+      case 'participant':
+        loadProjectParticipants();
+        break;
+      case 'document':
+        loadProjectDocuments();
+        break;
+      case 'leaderChange':
+        loadProjectLeaderChanges();
+        break;
+    }
   }
 });
 </script>

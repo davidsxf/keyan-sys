@@ -60,11 +60,6 @@ export const projectBudgetApi = {
   },
   
 
-  // updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
-  //   console.log('更新项目预算:', id, data);
-  //   return await http.post(`${API_BASE}/${id}`, data, { method: 'PUT' });
-  // },
-
   // 更新项目预算
 updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<ProjectBudget> => {
   console.log('更新项目预算:', id, data);

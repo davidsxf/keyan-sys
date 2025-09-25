@@ -214,10 +214,7 @@ def get_source_choices(request):
     return [{"value": source.id, "label": source.name} for source in sources]
 
 
-
-
 #项目负责人变更
-
 
 #项目预算
 

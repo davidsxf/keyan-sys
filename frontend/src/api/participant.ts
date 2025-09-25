@@ -109,8 +109,8 @@ export const participantApi = {
 
   // 获取指定项目的所有参与人员
   getProjectParticipants: async (projectId: number): Promise<{ items: ProjectStaff[]; total: number; }> => {
-    console.log('getProjectParticipants projectId:', projectId);
     const response = await http.get(`${API_BASE}/${projectId}/participants`);
+    // console.log('getProjectParticipants response:', response);
     return response;
   },
 };
