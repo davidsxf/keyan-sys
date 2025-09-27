@@ -172,7 +172,7 @@
               <el-table-column prop="department_name" label="所属部门" width="150" />
               <el-table-column prop="role_display" label="角色" width="120">
                 <template #default="{ row }">
-                  <el-tag>{{ row.role_display }}</el-tag>
+                  <el-tag>{{ getRoleDisplay(row.role_display) }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column prop="join_date" label="加入日期" width="120" />
@@ -483,7 +483,7 @@
                     placeholder="请选择新负责人"
                     style="width: 100%;"
                     filterable
-                    loading="loadingLeaders"
+                    :loading="loadingLeaders"
                 >
                     <el-option
                         v-for="item in leaderOptions"
@@ -559,6 +559,7 @@ const activeTab = ref('budget');
 // 变更负责人相关状态
 const changeLeaderDialogVisible = ref(false);
 const newLeaderId = ref<number | null>(null);
+const changeDate = ref<string>(new Date().toISOString().split('T')[0]); // 添加这一行，默认值为当前日期
 const changeRemark = ref('');
 const leaderOptions = ref<any[]>([]);
 const loadingLeaders = ref(false);
@@ -1078,13 +1079,15 @@ const submitParticipantForm = async () => {
       return;
     }
     
+    // 确保始终设置project_id
+    participantForm.project_id = selectedProjectId.value;
+    
     if (currentParticipant.value) {
       // 更新参与人员
       await participantApi.updateParticipant(currentParticipant.value.id, participantForm);
       ElMessage.success('更新成功');
     } else {
       // 创建参与人员
-      participantForm.project_id = selectedProjectId.value;
       await participantApi.createParticipant(participantForm);
       ElMessage.success('创建成功');
     }
@@ -1111,14 +1114,7 @@ const resetParticipantForm = () => {
   });
 };
 
-// const resetParticipantFilter = () => {
-//   Object.assign(participantFilter, {
-//     staff_name: '',
-//     role: ''
-//   });
-//   participantPagination.current = 1;
-//   loadProjectParticipants();
-// };
+
 
 // 文档相关方法
 const showDocumentDialog = () => {
@@ -1275,10 +1271,17 @@ const handleProjectChange = (projectId: number) => {
   }
 };
 
-// 返回列表
-// const handleBack = () => {
-//   router.push('/project');
-// };
+// 添加角色中英文映射函数
+const getRoleDisplay = (roleDisplay) => {
+  const roleMap = {
+    'member': '成员',
+    'leader': '负责人'
+    // 可以根据实际情况添加更多角色映射
+  };
+  // 如果存在映射则返回中文，否则返回原始值
+  return roleMap[roleDisplay] || roleDisplay || '-';
+};
+
 
 const getBudgetTypeDisplay = (type: string) => {
   // 修正：通过 .value 访问 ref 数组
@@ -1388,14 +1391,27 @@ watch(selectedProjectId, (newId) => {
 const loadLeaderOptions = async () => {
     loadingLeaders.value = true;
     try {
-        const response = await staffApi.getStaffs('', undefined, undefined, '在职', 1, 1000);
-        leaderOptions.value = response.data.map((staff: any) => ({
+        // 调用API获取员工列表，只获取在职员工
+        const result = await staffApi.getStaffs('', undefined, undefined, '在职', 1, 1000);
+        
+        // 确保获取到的数据是数组格式
+        const staffList = result && Array.isArray(result.data) ? result.data : [];
+        
+        // 转换为下拉框需要的格式
+        leaderOptions.value = staffList.map((staff: any) => ({
             label: staff.name,
             value: staff.id
         }));
+        
+        // 如果没有数据，可以提供一个提示
+        if (leaderOptions.value.length === 0) {
+            console.log('没有找到在职员工数据');
+        }
     } catch (error) {
         ElMessage.error('加载负责人列表失败');
         console.error('Failed to load leader options:', error);
+        // 出错时清空选项，避免显示错误数据
+        leaderOptions.value = [];
     } finally {
         loadingLeaders.value = false;
     }
@@ -1444,7 +1460,7 @@ const confirmChangeLeader = async () => {
         const data = {
             project_id: project.value.id,
             leader_id: newLeaderId.value,
-            change_date: new Date().toISOString().split('T')[0], // 当前日期
+            change_date: changeDate.value, // 当前日期
             remark: changeRemark.value
         };
         
@@ -1478,6 +1494,7 @@ const handleCloseChangeLeaderDialog = () => {
 // 初始化
 onMounted(() => {
   loadProjects();
+  loadRoleChoices(); // 将这一行移到if条件外部，确保总是加载角色选项
   if (selectedProjectId.value) {
     loadProjectDetail();
     // 根据初始活动标签页加载对应数据
