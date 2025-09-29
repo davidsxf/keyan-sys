@@ -29,33 +29,34 @@ def create_project_leader_change(request, data: ProjectLeaderChangeIn):
     
     # 2. 验证新负责人是否存在
     new_leader = get_object_or_404(Staff, id=data.leader_id)
+    print(new_leader)
     
-    # 3. 记录旧负责人信息，用于记录变更历史
-    old_leader_id = project.leader.id if project.leader else None
-    
-    # 4. 更新项目的负责人
-    project.leader = new_leader
-    project.save()
 
     # 6. 记录变更历史 查询是否第一次变更 ，如果是则记录项目创建时的负责人
+    first_change = ProjectLeaderChange.objects.filter(project=project).first()
     
-    if old_leader_id is None:
+    if first_change is None:
+        # 3. 记录旧负责人信息，用于记录变更历史
+        old_leader_id = project.leader.id if project.leader else None
         # 项目创建时的负责人变更
         ProjectLeaderChange.objects.create(
             project=project,
-            leader_id=new_leader.id,
-            change_date=project.create_date,
+            leader_id=old_leader_id,
+            change_date=project.start_date,
             remark='项目创建时的负责人',
         )
-    else:
-        # 普通的负责人变更
+    
+    # 普通的负责人变更
         ProjectLeaderChange.objects.create(
             project=project,
-            leader_id=old_leader_id,
-            change_date=project.create_date,
-            remark='项目创建时的负责人',
+            leader_id=new_leader.id,
+            change_date=data.change_date,
+            remark=data.remark,
         )
 
+    # 4. 更新项目的负责人
+    project.leader = new_leader
+    project.save()
   
     
     # 5. 创建项目负责人变更记录
@@ -534,4 +535,6 @@ def get_project_leader_changes(request, project_id: int):
     """获取项目负责人变更记录"""
     project = get_object_or_404(Project, id=project_id)
     # 使用select_related预加载负责人信息
-    return project.leader_changes.select_related('leader').order_by('-change_date', '-created_at')
+    queryset = ProjectLeaderChange.objects.filter(project=project).select_related('project','staff')
+    print('queryset:', queryset.values('id', 'project_id', 'project_title', 'leader_id', 'leader_name', 'change_date', 'remark', 'created_at', 'updated_at'))
+    return queryset

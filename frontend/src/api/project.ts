@@ -67,7 +67,18 @@ export interface Choice {
   label: string;
 }
 
+export interface ProjectLeaderChange {
+  id: number;
+  project_id: number;
+  project_title: string;
+  leader_id: number;
+  leader_name: string;
+  change_date: string;
+  remark?: string;
+  created_at: string;
+  updated_at: string;
 
+}
 
 
 import { http } from '@/utils/http';
@@ -151,11 +162,17 @@ getLevelChoices: async (): Promise<Choice[]> => {
   },
 
   // 获取项目负责人变更记录
-  getProjectLeaderChanges: async (projectId: number, params?: any): Promise<{ results: any[]; count: number }> => {
-    return await http.get(`${API_BASE}/${projectId}/leader-changes`, { params });
+  getProjectLeaderChanges: async (projectId: number): Promise<{ results: ProjectLeaderChange[], count: number }> => {
+    const response = await http.get(`${API_BASE}/${projectId}/leader-changes`);
+    console.log("learder",response.items)
+    return response;
   },
 
-}; 
+  // 在projectApi对象中添加创建项目负责人变更记录的方法
+  createProjectLeaderChange: async (data: any): Promise<any> => {
+    return await http.post(`${API_BASE}/leader-change`, { data });
+  },
+};
 
 
 

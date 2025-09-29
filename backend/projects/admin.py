@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponse
-from .models import Project, ProjectStaff, ProjectDocument, ProjectBudget
+from .models import Project, ProjectStaff, ProjectDocument, ProjectBudget, ProjectLeaderChange
 import csv
 from datetime import datetime
 
@@ -61,4 +61,16 @@ class ProjectBudgetAdmin(ExportCsvMixin, admin.ModelAdmin):
     search_fields = ('project__title', 'name', 'remark')
     list_filter = ('type', 'year', 'created_at', 'updated_at')
     ordering = ('-created_at',)
+    actions = ['export_as_csv']
+
+# 添加项目负责人变更管理
+@admin.register(ProjectLeaderChange)
+class ProjectLeaderChangeAdmin(ExportCsvMixin, admin.ModelAdmin):
+    list_display = (
+        'id', 'project', 'leader', 'change_date', 'remark',
+        'created_at', 'updated_at'
+    )
+    search_fields = ('project__title', 'leader__name', 'remark')
+    list_filter = ('change_date', 'created_at', 'updated_at')
+    ordering = ('-change_date', '-created_at')
     actions = ['export_as_csv']

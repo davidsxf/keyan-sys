@@ -530,7 +530,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElMessageBox, FormInstance, FormRules, UploadFile, UploadRawFile } from 'element-plus';
+import { ElMessage, ElMessageBox, ElLoading, FormInstance, FormRules, UploadFile, UploadRawFile } from 'element-plus';
 import { Project } from '@/api/project';
 import { projectApi } from '@/api/project';
 import { projectBudgetApi } from '@/api/projectBudget';
@@ -559,10 +559,12 @@ const activeTab = ref('budget');
 // 变更负责人相关状态
 const changeLeaderDialogVisible = ref(false);
 const newLeaderId = ref<number | null>(null);
-const changeDate = ref<string>(new Date().toISOString().split('T')[0]); // 添加这一行，默认值为当前日期
+const changeDate = ref<string>(new Date().toISOString().split('T')[0]); 
 const changeRemark = ref('');
 const leaderOptions = ref<any[]>([]);
 const loadingLeaders = ref(false);
+
+
 
 // 预算相关
 const budgets = ref<any[]>([]);
@@ -660,9 +662,7 @@ const leaderChangePagination = reactive({
   size: 10,
   total: 0
 });
-const leaderChangeFilter = reactive({
-  change_date: ''
-});
+
 
 // 计算属性
 const budgetDialogTitle = computed(() => currentBudget.value ? '编辑预算' : '新增预算');
@@ -824,14 +824,12 @@ const loadProjectLeaderChanges = async () => {
   
   try {
     leaderChangesLoading.value = true;
-    const params = {
-      ...leaderChangeFilter,
-      page: leaderChangePagination.current,
-      page_size: leaderChangePagination.size
-    };
-    const { results, count } = await projectApi.getProjectLeaderChanges(selectedProjectId.value, params);
+    
+    const { results, count } = await projectApi.getProjectLeaderChanges(selectedProjectId.value);
     leaderChanges.value = results;
-    leaderChangePagination.total = count;
+    // 确保 results 是一个数组
+    console.log("results是:",results)
+    leaderChangePagination.total = count || 0;
   } catch (error) {
     ElMessage.error('加载负责人变更记录失败');
     console.error('加载负责人变更记录失败:', error);
@@ -1463,7 +1461,6 @@ const confirmChangeLeader = async () => {
             change_date: changeDate.value, // 当前日期
             remark: changeRemark.value
         };
-        
         await projectApi.createProjectLeaderChange(data);
         
         // 重新加载项目信息
