@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+     
+     # 第三方应用​
+    'debug_toolbar',  # 必须放在 django.contrib.staticfiles 之后
+
     'ninja',
     'corsheaders',  # 添加这一行
     'users',
@@ -48,6 +52,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+   
+    'debug_toolbar.middleware.DebugToolbarMiddleware', # 建议放在最前面（除了处理编码的中间件）​
     'corsheaders.middleware.CorsMiddleware',  # 添加到最前面
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -161,3 +167,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # 如果需要限制上传文件大小（可选）
 # DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
 # FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
+
+#  DebugToolbar开发环境配置​
+INTERNAL_IPS = [
+    '127.0.0.1',
+    'localhost',
+    # 如果使用局域网访问，添加你的 IP
+    # '192.168.1.100',
+]

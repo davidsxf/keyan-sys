@@ -530,11 +530,32 @@ def delete_project_document(request, document_id: int):
 # 在项目负责人变更相关代码部分添加以下内容
 
 @router.get("/{project_id}/leader-changes", response=List[ProjectLeaderChangeOut])
+# 使用自定义分页装饰器
 @paginate(CustomPagination)
+
 def get_project_leader_changes(request, project_id: int):
     """获取项目负责人变更记录"""
     project = get_object_or_404(Project, id=project_id)
-    # 使用select_related预加载负责人信息
-    queryset = ProjectLeaderChange.objects.filter(project=project).select_related('project','staff')
-    print('queryset:', queryset.values('id', 'project_id', 'project_title', 'leader_id', 'leader_name', 'change_date', 'remark', 'created_at', 'updated_at'))
-    return queryset
+    # 使用select_related预加载负责人信息和项目信息
+    queryset = ProjectLeaderChange.objects.filter(project=project).select_related('project','leader')
+    
+    # 转换QuerySet对象为符合ProjectLeaderChangeOut schema的字典列表
+    results = []
+    for change in queryset:
+        # 构建符合schema要求的字典
+        result_item = {
+            'id': change.id,
+            'project_id': change.project.id,
+            'project_title': change.project.title if change.project else None,
+            'leader_id': change.leader.id if change.leader else None,
+            'leader_name': change.leader.name if change.leader else None,
+            'change_date': change.change_date,
+            'remark': change.remark,
+            'created_at': change.created_at,
+            'updated_at': change.updated_at
+        }
+        results.append(result_item)
+    
+    return results
+       
+

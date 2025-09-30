@@ -897,23 +897,7 @@ const handleTabClick = (tab: any) => {
     // 手动更新activeTab的值
     activeTab.value = tabName;
     
-    // 根据选中的标签页加载对应数据
-    // switch (tabName) {
-    //   case 'budget':
-    //     loadProjectBudgets();
-    //     break;
-    //   case 'participant':
-    //     loadProjectParticipants();
-    //     break;
-    //   case 'document':
-    //     loadProjectDocuments();
-    //     break;
-    //   case 'leaderChange':
-    //     loadProjectLeaderChanges();
-    //     break;
-    //   default:
-    //     console.log('未知标签页名称:', tabName);
-    // }
+
   } else {
     console.error('无法获取标签页名称，参数结构为:', tab);
   }

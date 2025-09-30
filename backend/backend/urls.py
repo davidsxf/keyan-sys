@@ -23,4 +23,14 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/',api_v1.urls),
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # 添加这一行
+
+
+# 仅在 DEBUG 模式下启用调试工具栏​
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns = [
+    path('__debug__/', include(debug_toolbar.urls)),
+    
+] + urlpatterns

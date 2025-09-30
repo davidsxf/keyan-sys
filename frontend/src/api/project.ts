@@ -164,7 +164,7 @@ getLevelChoices: async (): Promise<Choice[]> => {
   // 获取项目负责人变更记录
   getProjectLeaderChanges: async (projectId: number): Promise<{ results: ProjectLeaderChange[], count: number }> => {
     const response = await http.get(`${API_BASE}/${projectId}/leader-changes`);
-    console.log("learder",response.items)
+    console.log("learder",response)
     return response;
   },
 
