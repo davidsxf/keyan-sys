@@ -28,10 +28,16 @@ export const getProjectDocuments = async (projectId: number, filter: ProjectDocu
   return await http.get(`${API_BASE}/${projectId}/documents`, { params: filter })
 }
 
-// 创建项目文档 - 使用ProjectDocumentIn方式
-// 创建项目文档 - 修正URL路径和请求配置
+/**
+ * 创建项目文档
+ * @param projectId 项目ID
+ * @param data 文档基本信息
+ * @param file 文档文件
+ * @returns 创建的文档数据
+ */
 export const createProjectDocument = async (projectId: number, data: ProjectDocumentIn, file: File) => {
   
+  console.log('data', data);
   // 创建FormData对象
   const formData = new FormData();
   formData.append('name', data.name);
@@ -46,15 +52,25 @@ export const createProjectDocument = async (projectId: number, data: ProjectDocu
     console.log(`${key}:`, value);
   }
   
-  // 修正变量名，使用与函数参数相同的 projectId
+  // 修正URL路径 - 后端API路径为/documents/{project_id}/documents
+  // 注意：API_BASE已经包含了/api/v1/projects前缀
   const url = `${API_BASE}/documents/${projectId}/documents`;
   console.log('Sending POST request to:', url);
   
-  // 正确的HTTP post调用
-  return await http.post(url, formData);
+  // 使用正确的HTTP post调用并设置Content-Type
+  return await http.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 };
 
-// 更新项目文档 - 修正API路径和数据发送方式
+/**
+ * 更新项目文档
+ * @param documentId 文档ID
+ * @param data 文档更新信息
+ * @returns 更新后的文档数据
+ */
 export const updateProjectDocument = async (documentId: number, data: ProjectDocumentIn) => {
   // 创建FormData对象
   const formData = new FormData();
@@ -64,6 +80,7 @@ export const updateProjectDocument = async (documentId: number, data: ProjectDoc
     formData.append('remark', data.remark);
   }
   
+  // 修正API路径
   return await http.put(`${API_BASE}/documents/${documentId}`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
@@ -71,8 +88,13 @@ export const updateProjectDocument = async (documentId: number, data: ProjectDoc
   });
 }
 
-// 删除项目文档 - 修正API路径
+/**
+ * 删除项目文档
+ * @param documentId 文档ID
+ * @returns 删除结果
+ */
 export const deleteProjectDocument = async (documentId: number) => {
+  // 修正API路径
   return await http.delete(`${API_BASE}/documents/${documentId}`);
 }
 

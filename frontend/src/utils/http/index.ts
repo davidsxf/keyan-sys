@@ -165,11 +165,11 @@ class PureHttp {
     } as PureHttpRequestConfig;
 
     // 单独处理自定义请求/响应回调
-    // 问题代码
+    // 修复类型错误，正确处理响应数据
     return new Promise((resolve, reject) => {
       PureHttp.axiosInstance
         .request(config)
-        .then((response: undefined) => {  // 这里有严重错误！
+        .then((response: any) => {
           resolve(response);
         })
         .catch(error => {

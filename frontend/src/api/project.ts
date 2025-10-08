@@ -162,10 +162,30 @@ getLevelChoices: async (): Promise<Choice[]> => {
   },
 
   // 获取项目负责人变更记录
-  getProjectLeaderChanges: async (projectId: number): Promise<{ results: ProjectLeaderChange[], count: number }> => {
+/**
+   * 获取项目负责人变更记录
+   * @param projectId 项目ID
+   * @returns 包含变更记录和总数的对象
+   */
+  getProjectLeaderChanges: async (projectId: number): Promise<{ items: any[], count: number }> => {
     const response = await http.get(`${API_BASE}/${projectId}/leader-changes`);
-    console.log("learder",response)
-    return response;
+    console.log("leader changes response:", response);
+    // 确保返回的数据格式符合前端期望
+    if (response && Array.isArray(response)) {
+      // 处理直接返回数组的情况
+      return { items: response, count: response.length };
+    } else if (response && typeof response === 'object') {
+      // 处理返回对象的情况，优先查找items和count字段
+      if ('items' in response && 'count' in response) {
+        return response;
+      }
+      // 兼容可能的其他格式
+      else if ('results' in response && 'count' in response) {
+        return { items: response.results, count: response.count };
+      }
+    }
+    // 默认返回空数组和0计数
+    return { items: [], count: 0 };
   },
 
   // 在projectApi对象中添加创建项目负责人变更记录的方法

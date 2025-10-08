@@ -238,8 +238,9 @@
               <el-table-column prop="upload_by_name" label="上传人" width="120" />
               <el-table-column prop="upload_date" label="上传日期" width="150" />
               <el-table-column prop="remark" label="备注" min-width="200" />
-              <el-table-column label="操作" width="180" fixed="right">
+              <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
+                  <el-button size="small" @click="previewDocument(row.file_path, row.name)">预览</el-button>
                   <el-button size="small" @click="downloadDocument(row.file_path, row.name)">下载</el-button>
                   <el-button size="small" type="danger" @click="deleteDocument(row)">删除</el-button>
                 </template>
@@ -271,7 +272,7 @@
             <el-table :data="leaderChanges" v-loading="leaderChangesLoading">
               <el-table-column prop="change_date" label="变更日期" width="150" />
 
-              <el-table-column prop="new_leader_name" label="变更后负责人" width="250" />
+              <el-table-column prop="leader_name" label="变更后负责人" width="250" />
               <el-table-column prop="remark" label="备注" min-width="300" />
             </el-table>
     
@@ -428,15 +429,23 @@
             :before-upload="handleFileBeforeUpload"
             :on-change="handleFileChange"
             :on-remove="handleFileRemove"
+            :on-progress="handleUploadProgress"
+            :on-drop="handleFileChange"
+            :on-drag-over="handleDragOver"
+            :on-drag-leave="handleDragLeave"
             :limit="1"
             class="upload-demo"
+            drag
           >
-            <el-button type="primary">点击上传</el-button>
-            <template #tip>
-              <div class="el-upload__tip">
-                只能上传单个文件，支持常见文档格式
-              </div>
-            </template>
+            <i class="el-icon-upload"></i>
+            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+            <div class="el-upload__tip" slot="tip">
+              支持JPG、PNG、PDF、Word、Excel、PPT等格式，单个文件最大50MB
+            </div>
+            <!-- 上传进度条 -->
+            <div v-if="uploadProgress > 0 && uploadProgress < 100" class="upload-progress">
+              <el-progress :percentage="uploadProgress" />
+            </div>
           </el-upload>
         </el-form-item>
         <el-form-item label="备注">
@@ -653,6 +662,7 @@ const documentForm = reactive({
   remark: ''
 });
 const fileList = ref<UploadFile[]>([]);
+const uploadProgress = ref<number>(0);
 
 // 负责人变更相关
 const leaderChanges = ref<any[]>([]);
@@ -825,10 +835,10 @@ const loadProjectLeaderChanges = async () => {
   try {
     leaderChangesLoading.value = true;
     
-    const { results, count } = await projectApi.getProjectLeaderChanges(selectedProjectId.value);
-    leaderChanges.value = results;
+    const { items, count } = await projectApi.getProjectLeaderChanges(selectedProjectId.value);
+    leaderChanges.value = items;
     // 确保 results 是一个数组
-    console.log("results是:",results)
+    // console.log("items是:",items)
     leaderChangePagination.total = count || 0;
   } catch (error) {
     ElMessage.error('加载负责人变更记录失败');
@@ -1123,18 +1133,43 @@ const deleteDocument = async (row: any) => {
       type: 'warning'
     });
     
-    await documentApi.deleteProjectDocument(selectedProjectId.value, row.id);
+    // 修复：只需要传入文档ID
+    await documentApi.deleteProjectDocument(row.id);
     ElMessage.success('删除成功');
     loadProjectDocuments();
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败');
+      console.error('删除文档失败:', error);
     }
   }
 };
 
+// 文件类型和大小验证
 const handleFileBeforeUpload = (file: UploadRawFile) => {
-  // 这里可以添加文件类型和大小的验证
+  // 允许的文件类型
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml',
+    'application/pdf',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain', 'text/csv', 'application/zip'
+  ];
+  
+  // 最大文件大小（50MB）
+  const maxSize = 50 * 1024 * 1024;
+  
+  if (!allowedTypes.includes(file.type)) {
+    ElMessage.error(`不支持的文件类型: ${file.type}`);
+    return false;
+  }
+  
+  if (file.size > maxSize) {
+    ElMessage.error('文件大小不能超过50MB');
+    return false;
+  }
+  
   return true;
 };
 
@@ -1146,6 +1181,51 @@ const handleFileChange = (file: UploadFile, fileList: UploadFile[]) => {
 
 const handleFileRemove = (file: UploadFile, fileList: UploadFile[]) => {
   documentForm.file = null;
+};
+
+// 拖拽上传悬停状态处理
+const handleDragOver = () => {
+  // 可以在这里添加拖拽悬停效果
+};
+
+const handleDragLeave = () => {
+  // 可以在这里移除拖拽悬停效果
+};
+
+// 文件上传进度处理
+const handleUploadProgress = (event: any) => {
+  if (event.total > 0) {
+    uploadProgress.value = Math.round((event.loaded / event.total) * 100);
+  }
+};
+
+// 文档预览功能
+const previewDocument = (filePath: string, fileName: string) => {
+  // 支持预览的文件类型
+  const previewableTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'application/pdf'];
+  
+  // 获取文件扩展名
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  // 根据扩展名判断文件类型
+  let fileType = 'application/octet-stream';
+  if (['jpg', 'jpeg'].includes(extension)) fileType = 'image/jpeg';
+  else if (['png'].includes(extension)) fileType = 'image/png';
+  else if (['gif'].includes(extension)) fileType = 'image/gif';
+  else if (['svg'].includes(extension)) fileType = 'image/svg+xml';
+  else if (['pdf'].includes(extension)) fileType = 'application/pdf';
+  
+  if (previewableTypes.includes(fileType)) {
+    let url = filePath;
+    if (!url.startsWith('http')) {
+      url = `${window.location.origin}${url}`;
+    }
+    
+    // 对于图片和PDF，可以在新窗口中打开预览
+    window.open(url, '_blank');
+  } else {
+    ElMessage.warning('该文件类型不支持在线预览，请下载查看');
+    downloadDocument(filePath, fileName);
+  }
 };
 
 const closeDocumentDialog = () => {
@@ -1167,22 +1247,48 @@ const submitDocumentForm = async () => {
     }
     formData.append('remark', documentForm.remark);
     
-    if (currentDocument.value) {
-      // 更新文档
-      await documentApi.updateProjectDocument(selectedProjectId.value, currentDocument.value.id, formData);
-      ElMessage.success('更新成功');
-    } else {
-      // 创建文档
-      await documentApi.createProjectDocument(selectedProjectId.value, formData);
-      ElMessage.success('上传成功');
-    }
+    // 重置上传进度
+    uploadProgress.value = 0;
     
-    documentDialogVisible.value = false;
-    loadProjectDocuments();
+    // 显示加载动画
+    const loading = ElLoading.service({ 
+      lock: true, 
+      text: currentDocument.value ? '正在更新文档...' : '正在上传文档...',
+      spinner: 'el-icon-loading'
+    });
+    
+    try {
+      if (currentDocument.value) {
+          // 更新文档 - 准备数据对象
+          const updateData = {
+            name: documentForm.name,
+            remark: documentForm.remark
+          };
+          await documentApi.updateProjectDocument(currentDocument.value.id, updateData);
+          ElMessage.success('更新成功');
+        } else {
+          // 创建文档 - 修复参数问题
+          const createData = {
+            name: documentForm.name,
+            remark: documentForm.remark
+          };
+          await documentApi.createProjectDocument(selectedProjectId.value, createData, documentForm.file);
+          ElMessage.success('上传成功');
+        }
+      
+      documentDialogVisible.value = false;
+      loadProjectDocuments();
+    } finally {
+      // 关闭加载动画
+      loading.close();
+    }
   } catch (error) {
     if (error instanceof Error) {
       ElMessage.error(error.message || '操作失败');
+    } else {
+      ElMessage.error('操作失败');
     }
+    console.error('文档操作失败:', error);
   }
 };
 
@@ -1196,6 +1302,7 @@ const resetDocumentForm = () => {
     remark: ''
   });
   fileList.value = [];
+  uploadProgress.value = 0;
 };
 
 const resetDocumentFilter = () => {

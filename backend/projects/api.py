@@ -474,9 +474,9 @@ def create_project_document(request, project_id: int, data: ProjectDocumentIn = 
         return JsonResponse({"error": "项目不存在"}, status=404)
     
     # # 2. 验证文件类型
-    valid_extensions = ['.pdf', '.docx', '.xlsx', '.txt']
+    valid_extensions = ['.pdf', '.docx', '.xlsx', '.txt', '.jpg', '.jpeg', '.png', '.gif']
     if not any(file.name.endswith(ext) for ext in valid_extensions):
-        return JsonResponse({"error": "仅支持PDF、DOCX、XLSX和TXT文件"}, status=400)
+        return JsonResponse({"error": "仅支持PDF、DOCX、XLSX、TXT、JPG、JPEG、PNG和GIF文件"}, status=400)
     
     # 3. 处理文件存储
     document = ProjectDocument.objects.create(
