@@ -212,35 +212,27 @@
               <el-form-item label="文档名称">
                 <el-input v-model="documentFilter.name" placeholder="请输入文档名称" clearable />
               </el-form-item>
-              <el-form-item label="上传日期">
-                <el-date-picker
-                  v-model="documentFilter.upload_date"
-                  type="date"
-                  placeholder="请选择上传日期"
-                  clearable
-                />
-              </el-form-item>
+    
               <el-form-item>
                 <el-button type="primary" @click="loadProjectDocuments">搜索</el-button>
                 <el-button @click="resetDocumentFilter">重置</el-button>
               </el-form-item>
             </el-form>
-            
             <!-- 文档表格 -->
             <el-table :data="documents" v-loading="documentsLoading">
               <el-table-column prop="name" label="文档名称" min-width="200" />
-              <el-table-column prop="file_size" label="文件大小" width="100">
+           
+        
+              <el-table-column prop="file_type" label="文件类型" width="100">
                 <template #default="{ row }">
-                  {{ formatFileSize(row.file_size) }}
+                  {{ formatFileType(row.file) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="file_type" label="文件类型" width="100" />
-              <el-table-column prop="upload_by_name" label="上传人" width="120" />
-              <el-table-column prop="upload_date" label="上传日期" width="150" />
+              <el-table-column prop="updated_at" label="上传日期" width="150" />
               <el-table-column prop="remark" label="备注" min-width="200" />
               <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
-                  <el-button size="small" @click="previewDocument(row.file_path, row.name)">预览</el-button>
+                  <el-button size="small" @click="previewDocument(row.file)">预览</el-button>
                   <el-button size="small" @click="downloadDocument(row.file_path, row.name)">下载</el-button>
                   <el-button size="small" type="danger" @click="deleteDocument(row)">删除</el-button>
                 </template>
@@ -650,8 +642,7 @@ const documentPagination = reactive({
   total: 0
 });
 const documentFilter = reactive({
-  name: '',
-  upload_date: ''
+  name: ''
 });
 const documentDialogVisible = ref(false);
 const currentDocument = ref<any | null>(null);
@@ -817,9 +808,10 @@ const loadProjectDocuments = async () => {
       page: documentPagination.current,
       page_size: documentPagination.size
     };
-    const { results, count } = await documentApi.getProjectDocuments(selectedProjectId.value, params);
-    documents.value = results;
-    documentPagination.total = count;
+    const { items, count } = await documentApi.getProjectDocuments(selectedProjectId.value, params);
+    console.log("items是:",items)
+    documents.value = items || [];
+    documentPagination.total = count || 0;
   } catch (error) {
     ElMessage.error('加载文档数据失败');
     console.error('加载文档数据失败:', error);
@@ -1041,7 +1033,7 @@ const deleteParticipant = async (row: any) => {
     });
     
     await participantApi.deleteParticipant(row.id);
-    ElMessage.success('删除成功');
+    ElMessage.success("删除成功");
     loadProjectParticipants();
   } catch (error) {
     if (error !== 'cancel') {
@@ -1200,10 +1192,77 @@ const handleUploadProgress = (event: any) => {
 };
 
 // 文档预览功能
-const previewDocument = (filePath: string, fileName: string) => {
+/**
+ * 预览文档函数
+ * @param file 文件对象或文件路径字符串
+ * @param fileName 文件名
+ */
+/**
+ * 预览文档
+ * @param file 文件对象或文件路径字符串
+ */
+const previewDocument = (file: any) => {
+  // 参数验证
+  console.log('previewDocument 调用参数:', file);
+  
+  if (!file) {
+    ElMessage.error('文件数据无效');
+    console.error('文件数据无效或为空:', file);
+    return;
+  }
+  
+  // 获取文件路径和文件名
+  let filePath: string = '';
+  let fileName: string = '';
+  
+  if (typeof file === 'string') {
+    // 如果file是字符串，直接使用作为文件路径
+    filePath = file;
+    // 从路径中提取文件名
+    fileName = filePath.split('/').pop() || filePath.split('\\').pop() || '';
+  } else if (typeof file === 'object') {
+    // 如果file是对象且包含file_path属性，使用file_path
+    if ('file_path' in file) {
+      filePath = file.file_path;
+    } 
+    // 如果file是对象且包含path属性，使用path
+    else if ('path' in file) {
+      filePath = file.path;
+    } 
+    // 尝试将对象转换为字符串
+    else {
+      filePath = String(file);
+    }
+    
+    // 从对象中获取文件名或从路径中提取
+    if ('name' in file && typeof file.name === 'string') {
+      fileName = file.name;
+    } else {
+      fileName = filePath.split('/').pop() || filePath.split('\\').pop() || '';
+    }
+  } else {
+    // 其他情况，尝试转换为字符串
+    filePath = String(file);
+    fileName = filePath.split('/').pop() || filePath.split('\\').pop() || '';
+  }
+  
+  // 验证文件路径
+  if (!filePath || typeof filePath !== 'string') {
+    ElMessage.error('文件路径无效');
+    console.error('无法获取有效的文件路径:', file);
+    return;
+  }
+  
+  // 验证文件名
+  if (!fileName || typeof fileName !== 'string') {
+    ElMessage.error('文件名无效');
+    console.error('文件名无效或为空:', fileName);
+    return;
+  }
+
   // 支持预览的文件类型
   const previewableTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'application/pdf'];
-  
+
   // 获取文件扩展名
   const extension = fileName.split('.').pop()?.toLowerCase() || '';
   // 根据扩展名判断文件类型
@@ -1213,15 +1272,47 @@ const previewDocument = (filePath: string, fileName: string) => {
   else if (['gif'].includes(extension)) fileType = 'image/gif';
   else if (['svg'].includes(extension)) fileType = 'image/svg+xml';
   else if (['pdf'].includes(extension)) fileType = 'application/pdf';
-  
+
   if (previewableTypes.includes(fileType)) {
+    // 构建预览URL - 改进URL处理逻辑以支持不同的路径格式
     let url = filePath;
+    
+    // 调试信息
+    console.log('原始文件路径:', filePath);
+    console.log('文件名:', fileName);
+    console.log('文件类型:', fileType);
+    
+    // 改进URL构建逻辑
     if (!url.startsWith('http')) {
-      url = `${window.location.origin}${url}`;
+      // 处理不同的路径格式
+      if (url.startsWith('/')) {
+        // 如果是以/开头的绝对路径，直接添加origin
+        url = `${window.location.origin}${url}`;
+      } else {
+        // 如果是相对路径，添加API前缀或根据实际情况调整
+        // 注意：这里可能需要根据项目的实际API结构调整
+        url = `${window.location.origin}/api${url.startsWith('/') ? '' : '/'}${url}`;
+      }
     }
     
-    // 对于图片和PDF，可以在新窗口中打开预览
-    window.open(url, '_blank');
+    console.log('构建的预览URL:', url);
+    
+    // 测试URL是否有效
+    try {
+      // 对于图片和PDF，可以在新窗口中打开预览
+      const newWindow = window.open(url, '_blank');
+      
+      if (!newWindow) {
+        ElMessage.error('无法打开新窗口，可能被浏览器阻止');
+        console.error('新窗口打开失败，可能被浏览器阻止');
+        // 作为备选方案，尝试使用iframe预览或提供下载选项
+        downloadDocument(filePath, fileName);
+      }
+    } catch (error) {
+      ElMessage.error('预览文件时发生错误');
+      console.error('文件预览错误:', error);
+      downloadDocument(filePath, fileName);
+    }
   } else {
     ElMessage.warning('该文件类型不支持在线预览，请下载查看');
     downloadDocument(filePath, fileName);
@@ -1314,9 +1405,26 @@ const resetDocumentFilter = () => {
   loadProjectDocuments();
 };
 
-// 文档下载
+/**
+ * 文档下载函数
+ * @param filePath 文件路径
+ * @param fileName 文件名
+ */
 const downloadDocument = async (filePath: string, fileName: string) => {
   try {
+    // 参数验证
+    if (!filePath || typeof filePath !== 'string') {
+      ElMessage.error('文件路径无效');
+      console.error('文件路径无效或为空:', filePath);
+      return;
+    }
+
+    if (!fileName || typeof fileName !== 'string') {
+      ElMessage.error('文件名无效');
+      console.error('文件名无效或为空:', fileName);
+      return;
+    }
+    
     // 确保filePath是完整的URL
     let url = filePath;
     if (!url.startsWith('http')) {
@@ -1398,12 +1506,36 @@ const formatCurrency = (value: number) => {
   return value.toFixed(2);
 };
 
-// 格式化文件大小
-const formatFileSize = (bytes: number) => {
-  if (typeof bytes !== 'number' || isNaN(bytes)) {
+/**
+ * 格式化文件大小
+ * @param file 可以是文件大小数字或文件路径字符串
+ * @returns 格式化后的文件大小字符串
+ * @note 当传入文件路径时，由于前端无法直接获取文件大小，会返回'未知'
+ */
+const formatFileSize = (file: number | string) => {
+  // 参数验证
+  if (file === null || file === undefined || file === '') {
     return '0 B';
   }
   
+  // 尝试将输入转换为数字
+  let bytes: number;
+  if (typeof file === 'number') {
+    bytes = file;
+  } else if (typeof file === 'string') {
+    // 尝试将字符串转换为数字
+    const num = parseFloat(file);
+    if (!isNaN(num)) {
+      bytes = num;
+    } else {
+      // 如果是文件路径字符串，无法直接获取文件大小
+      return '未知';
+    }
+  } else {
+    return '0 B';
+  }
+  
+  // 格式化文件大小
   if (bytes < 1024) {
     return bytes + ' B';
   } else if (bytes < 1024 * 1024) {
@@ -1413,6 +1545,41 @@ const formatFileSize = (bytes: number) => {
   } else {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
+};
+
+/**
+ * 根据文件路径格式化文件类型
+ * @param file 文件路径字符串
+ * @returns 文件类型的中文描述
+ */
+const formatFileType = (file: string) => {
+  // 参数验证
+  if (!file || typeof file !== 'string') {
+    return '-';
+  }
+  
+  // 从文件路径中提取扩展名
+  const extension = file.split('.').pop()?.toLowerCase() || '';
+  
+  // 文件类型映射
+  const typeMap: Record<string, string> = {
+    'pdf': 'PDF 文件',
+    'docx': 'Word 文件',
+    'xlsx': 'Excel 文件',
+    'pptx': 'PowerPoint 文件',
+    'txt': '文本文件',
+    'jpg': '图片文件',
+    'jpeg': '图片文件',
+    'png': '图片文件',
+    'gif': '图片文件',
+    'svg': '图片文件',
+    'zip': '压缩文件',
+    'rar': '压缩文件',
+    '7z': '压缩文件',
+    // 可以根据实际情况添加更多文件类型映射
+  };
+  
+  return typeMap[extension] || extension || '-';
 };
 
 // 添加loadRoleChoices函数

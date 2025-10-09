@@ -438,7 +438,7 @@ from django.db.models import F
 
 
 
-@router.get("{project_id}/documents", response=List[ProjectDocumentOut])
+@router.get("/documents/{project_id}/documents", response=List[ProjectDocumentOut])
 @paginate(CustomPagination)
 def list_project_documents(request, project_id: int, filters: ProjectDocumentFilter = Query(...)):
     """获取指定项目的所有文档"""
@@ -460,30 +460,43 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
 
 
 @router.post("/documents/{project_id}/documents", response=ProjectDocumentOut)
-def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...),file: UploadedFile = File(...)):
+def create_project_document(request, project_id: int):
+    """创建项目文档"""
     
-    print('create_project_document params:', project_id)
-    # 添加更详细的调试信息
-    print('Request data received:', request.POST)
-    print('Files received:', request.FILES)
+    # 添加详细的调试信息
+    print('create_project_document project_id:', project_id)
+    print('Request POST data:', request.POST)
+    print('Request FILES data:', request.FILES)
     
     # 1. 验证项目是否存在
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
-        return JsonResponse({"error": "项目不存在"}, status=404)
+        raise HttpError(404, "项目不存在")
     
-    # # 2. 验证文件类型
+    # 2. 从request中直接获取FormData数据
+    name = request.POST.get("name")
+    file = request.FILES.get("file")
+    remark = request.POST.get("remark")
+    
+    # 3. 验证必填字段
+    if not name:
+        raise HttpError(400, "文档名称不能为空")
+    
+    if not file:
+        raise HttpError(400, "请选择上传文件")
+    
+    # 4. 验证文件类型
     valid_extensions = ['.pdf', '.docx', '.xlsx', '.txt', '.jpg', '.jpeg', '.png', '.gif']
-    if not any(file.name.endswith(ext) for ext in valid_extensions):
-        return JsonResponse({"error": "仅支持PDF、DOCX、XLSX、TXT、JPG、JPEG、PNG和GIF文件"}, status=400)
+    if not any(file.name.endswith(ext.lower()) for ext in valid_extensions):
+        raise HttpError(400, "仅支持PDF、DOCX、XLSX、TXT、JPG、JPEG、PNG和GIF文件")
     
-    # 3. 处理文件存储
+    # 5. 处理文件存储
     document = ProjectDocument.objects.create(
         project=project,
-        name=data.name,
+        name=name,
         file=file,  # 直接将UploadedFile对象赋值给FileField
-        remark=data.remark
+        remark=remark
     )
     
     return document

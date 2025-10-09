@@ -25,7 +25,13 @@ const API_BASE = '/api/v1/projects'
 // 获取项目文档列表
 export const getProjectDocuments = async (projectId: number, filter: ProjectDocumentFilter) => {
   // console.log('getProjectDocuments', projectId, filter);
-  return await http.get(`${API_BASE}/${projectId}/documents`, { params: filter })
+  // 注意：后端API路径为/documents/{project_id}/documents
+  // API_BASE已经包含了/api/v1/projects前缀
+  const resp = await http.get(`${API_BASE}/documents/${projectId}/documents`, { params: filter })
+  // 检查响应数据
+  console.log('getProjectDocuments response:', resp);
+
+  return resp
 }
 
 /**
@@ -57,12 +63,9 @@ export const createProjectDocument = async (projectId: number, data: ProjectDocu
   const url = `${API_BASE}/documents/${projectId}/documents`;
   console.log('Sending POST request to:', url);
   
-  // 使用正确的HTTP post调用并设置Content-Type
-  return await http.post(url, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
+  // 重要：不要手动设置Content-Type为multipart/form-data
+  // 浏览器会自动为FormData设置正确的Content-Type和boundary
+  return await http.post(url, formData);
 };
 
 /**
