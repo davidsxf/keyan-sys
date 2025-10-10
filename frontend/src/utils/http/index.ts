@@ -29,8 +29,18 @@ const defaultConfig: AxiosRequestConfig = {
   // 数组格式参数序列化（https://github.com/axios/axios/issues/5142）
   paramsSerializer: {
     serialize: stringify as unknown as CustomParamsSerializer
-  }
+  },
+  // 发送跨域请求时携带凭证（cookies）
+  withCredentials: true
 };
+
+// 从cookie中获取CSRF令牌
+function getCSRFToken() {
+  const cookieValue = document.cookie
+    .split('; ')    .find(row => row.startsWith('csrftoken='))
+    ?.split('=')[1];
+  return cookieValue || '';
+}
 
 class PureHttp {
   constructor() {
@@ -77,6 +87,11 @@ class PureHttp {
         }
         // 修改请求拦截器中的白名单，确保它与后端API路径匹配
         const whiteList = [`${API_BASE}/login`, `${API_BASE}/refresh-token`];
+        
+        // 对非GET请求添加CSRF令牌
+        if (config.method && config.method.toLowerCase() !== 'get') {
+          config.headers['X-CSRFToken'] = getCSRFToken();
+        }
         
         // 确保formatToken函数正确格式化token
         return whiteList.some(url => config.url.endsWith(url))

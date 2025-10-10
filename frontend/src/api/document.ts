@@ -43,11 +43,11 @@ export const getProjectDocuments = async (projectId: number, filter: ProjectDocu
  */
 export const createProjectDocument = async (projectId: number, data: ProjectDocumentIn, file: File) => {
   
-  console.log('data', data);
+  // console.log('data', data);
   // 创建FormData对象
   const formData = new FormData();
   formData.append('name', data.name);
-  formData.append('file', file);
+  // formData.append('file', file);
   if (data.remark) {
     formData.append('remark', data.remark);
   }
@@ -63,9 +63,8 @@ export const createProjectDocument = async (projectId: number, data: ProjectDocu
   const url = `${API_BASE}/documents/${projectId}/documents`;
   console.log('Sending POST request to:', url);
   
-  // 重要：不要手动设置Content-Type为multipart/form-data
-  // 浏览器会自动为FormData设置正确的Content-Type和boundary
-  return await http.post(url, formData);
+  // 使用正确的HTTP post调用并设置Content-Type
+  return await http.post(url, formData,file);
 };
 
 /**
