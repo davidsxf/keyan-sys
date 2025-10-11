@@ -809,7 +809,7 @@ const loadProjectDocuments = async () => {
       page_size: documentPagination.size
     };
     const { items, count } = await documentApi.getProjectDocuments(selectedProjectId.value, params);
-    console.log("items是:",items)
+    // console.log("items是:",items)
     documents.value = items || [];
     documentPagination.total = count || 0;
   } catch (error) {

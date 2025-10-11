@@ -29,8 +29,7 @@ export const getProjectDocuments = async (projectId: number, filter: ProjectDocu
   // API_BASE已经包含了/api/v1/projects前缀
   const resp = await http.get(`${API_BASE}/documents/${projectId}/documents`, { params: filter })
   // 检查响应数据
-  console.log('getProjectDocuments response:', resp);
-
+  // console.log('getProjectDocuments response:', resp);
   return resp
 }
 
@@ -58,13 +57,17 @@ export const createProjectDocument = async (projectId: number, data: ProjectDocu
     console.log(`${key}:`, value);
   }
   
-  // 修正URL路径 - 后端API路径为/documents/{project_id}/documents
-  // 注意：API_BASE已经包含了/api/v1/projects前缀
+  // 修正URL路径 - 后端API路径为/projects/documents/{project_id}/documents
   const url = `${API_BASE}/documents/${projectId}/documents`;
   console.log('Sending POST request to:', url);
   
   // 使用正确的HTTP post调用并设置Content-Type
-  return await http.post(url, formData,file);
+  formData.append('file', file);
+  return await http.post(url, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 };
 
 /**
