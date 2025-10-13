@@ -460,12 +460,12 @@ def list_project_documents(request, project_id: int, filters: ProjectDocumentFil
 
 
 @router.post("/documents/{project_id}/documents", response=ProjectDocumentOut)
-def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...),file: UploadedFile = File(...)):
+def create_project_document(request, project_id: int, data: ProjectDocumentIn = Form(...), file: UploadedFile = File(...)):
     
-    print('create_project_document params:', project_id)
-    # 添加更详细的调试信息
-    print('Request data received:', request.POST)
-    print('Files received:', request.FILES)
+    # print('create_project_document params:', project_id)
+    # # 添加更详细的调试信息
+    # print('Request data received:', request.POST)
+    # print('Files received:', request.FILES)
     
     # 1. 验证项目是否存在
     try:
@@ -518,14 +518,37 @@ def update_project_document(request, document_id: int):
     document.remark = remark
     document.save()
     return document
-    
 
-@router.delete("/documents/{document_id}")
+
+@router.delete("/documents/{document_id}/delete")
 def delete_project_document(request, document_id: int):
     """删除项目文档"""
     document = get_object_or_404(ProjectDocument, id=document_id)
-    document.delete()
-    return {"success": True, "message": "项目文档删除成功"}
+    
+    # 先处理文件删除
+    file_deleted = False
+    if document.file:
+        try:
+            # 获取文件路径
+            file_path = document.file.path
+            # 先删除文件
+            document.file.delete(save=False)
+            file_deleted = True
+        except Exception as e:
+            # 文件删除失败时记录错误并继续
+            print(f"删除文件时出错: {str(e)}")
+    
+    # 如果文件删除成功或原本就没有文件，再删除数据库记录
+    if file_deleted or not document.file:
+        try:
+            document.delete()
+            return {"success": True, "message": "项目文档删除成功"}
+        except Exception as e:
+            # 数据库删除失败时返回错误
+            return {"success": False, "message": f"数据库记录删除失败: {str(e)}"}
+    else:
+        # 文件删除失败时返回错误
+        return {"success": False, "message": "文件删除失败，数据库记录未删除"}
 
 # 在项目负责人变更相关代码部分添加以下内容
 

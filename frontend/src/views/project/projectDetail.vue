@@ -233,7 +233,7 @@
               <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
                   <el-button size="small" @click="previewDocument(row.file)">预览</el-button>
-                  <el-button size="small" @click="downloadDocument(row.file_path, row.name)">下载</el-button>
+                  <el-button size="small" @click="downloadDocument(row.file, row.name)">下载</el-button>
                   <el-button size="small" type="danger" @click="deleteDocument(row)">删除</el-button>
                 </template>
               </el-table-column>
@@ -525,6 +525,39 @@
             </span>
         </template>
     </el-dialog>
+
+    <!-- 文件预览对话框 -->
+    <el-dialog
+      v-model="previewDialogVisible"
+      title="文件预览"
+      width="80%"
+      :before-close="handleClosePreviewDialog"
+    >
+      <div v-if="previewData.fileType.startsWith('image/')" class="image-preview">
+        <img :src="previewData.url" alt="预览图片" style="max-width: 100%; max-height: 70vh; object-fit: contain;" />
+      </div>
+      <div v-else-if="previewData.fileType === 'application/pdf'" class="pdf-preview">
+        <el-alert
+          title="PDF文件预览提示"
+          message="由于浏览器安全限制，PDF文件无法直接在对话框中预览，请点击下方按钮在新窗口中查看或下载文件。"
+          type="warning"
+          show-icon
+        />
+      </div>
+      <div v-else class="other-preview">
+        <div class="preview-not-supported">
+          <el-empty description="不支持此文件类型的在线预览" />
+          <el-button type="primary" @click="downloadDocument(previewData.url, previewData.fileName)">下载文件</el-button>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="handleClosePreviewDialog">关闭</el-button>
+          <el-button v-if="previewData.fileType === 'application/pdf'" @click="openPdfInNewWindow">在新窗口查看</el-button>
+          <el-button type="primary" @click="downloadDocument(previewData.url, previewData.fileName)">下载</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -564,6 +597,14 @@ const changeDate = ref<string>(new Date().toISOString().split('T')[0]);
 const changeRemark = ref('');
 const leaderOptions = ref<any[]>([]);
 const loadingLeaders = ref(false);
+
+// 文件预览相关状态
+const previewDialogVisible = ref(false);
+const previewData = reactive({
+  url: '',
+  fileName: '',
+  fileType: ''
+});
 
 
 
@@ -1289,25 +1330,43 @@ const previewDocument = (file: any) => {
         // 如果是以/开头的绝对路径，直接添加origin
         url = `${window.location.origin}${url}`;
       } else {
-        // 如果是相对路径，添加API前缀或根据实际情况调整
-        // 注意：这里可能需要根据项目的实际API结构调整
-        url = `${window.location.origin}/api${url.startsWith('/') ? '' : '/'}${url}`;
+        // 如果是相对路径，根据项目实际API结构添加正确的前缀
+        // 媒体文件通常直接通过media路径访问，不需要/api前缀
+        url = `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
       }
+    }
+    
+    // 完全清除URL中的所有Hash部分（针对Hash模式路由的特殊处理）
+    try {
+      const urlObj = new URL(url);
+      urlObj.hash = '';
+      url = urlObj.toString();
+    } catch (e) {
+      // 如果URL解析失败，尝试手动处理
+      if (url.includes('#')) {
+        url = url.split('#')[0];
+      }
+      console.warn('URL标准化失败，使用手动清理后的URL:', url);
     }
     
     console.log('构建的预览URL:', url);
     
-    // 测试URL是否有效
+    // 直接使用弹出窗口预览，避免先打开空白页
     try {
-      // 对于图片和PDF，可以在新窗口中打开预览
-      const newWindow = window.open(url, '_blank');
+      // 设置预览数据
+      previewData.url = url;
+      previewData.fileName = fileName;
+      previewData.fileType = fileType;
       
-      if (!newWindow) {
-        ElMessage.error('无法打开新窗口，可能被浏览器阻止');
-        console.error('新窗口打开失败，可能被浏览器阻止');
-        // 作为备选方案，尝试使用iframe预览或提供下载选项
-        downloadDocument(filePath, fileName);
-      }
+      // 显示预览对话框
+      previewDialogVisible.value = true;
+      
+      // 在控制台记录预览信息
+      console.log('文件预览信息:', {
+        fileName,
+        fileType,
+        url
+      });
     } catch (error) {
       ElMessage.error('预览文件时发生错误');
       console.error('文件预览错误:', error);
@@ -1744,6 +1803,33 @@ const confirmChangeLeader = async () => {
 const handleCloseChangeLeaderDialog = () => {
     // 可以在这里添加清理逻辑
     changeLeaderDialogVisible.value = false;
+};
+
+// 处理关闭文件预览对话框
+const handleClosePreviewDialog = () => {
+    // 清理预览数据
+    previewData.url = '';
+    previewData.fileName = '';
+    previewData.fileType = '';
+    previewDialogVisible.value = false;
+};
+
+// 在新窗口打开PDF文件
+const openPdfInNewWindow = () => {
+    try {
+        // 尝试在新窗口中打开PDF文件
+        const newWindow = window.open(previewData.url, '_blank', 'noopener,noreferrer');
+        
+        if (!newWindow) {
+            ElMessage.warning('新窗口打开失败，可能被浏览器阻止，请手动允许弹出窗口');
+        } else {
+            // 关闭预览对话框
+            handleClosePreviewDialog();
+        }
+    } catch (error) {
+        ElMessage.error('打开PDF文件失败');
+        console.error('打开PDF文件失败:', error);
+    }
 };
 
 // 初始化

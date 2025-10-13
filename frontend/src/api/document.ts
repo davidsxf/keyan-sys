@@ -42,28 +42,21 @@ export const getProjectDocuments = async (projectId: number, filter: ProjectDocu
  */
 export const createProjectDocument = async (projectId: number, data: ProjectDocumentIn, file: File) => {
   
-  // console.log('data', data);
-  // 创建FormData对象
+  // 创建FormData对象 - 注意：先添加data字段，再添加file字段，与后端参数定义顺序匹配
   const formData = new FormData();
   formData.append('name', data.name);
-  // formData.append('file', file);
   if (data.remark) {
     formData.append('remark', data.remark);
   }
-  
-  // 检查FormData内容
-  console.log('FormData内容检查:');
-  for (const [key, value] of formData.entries()) {
-    console.log(`${key}:`, value);
-  }
-  
+  formData.append('file', file);
+
   // 修正URL路径 - 后端API路径为/projects/documents/{project_id}/documents
   const url = `${API_BASE}/documents/${projectId}/documents`;
-  console.log('Sending POST request to:', url);
-  
-  // 使用正确的HTTP post调用并设置Content-Type
-  formData.append('file', file);
-  return await http.post(url, formData, {
+   
+  // 使用正确的HTTP post调用，按照post方法签名传递参数
+  // 第二个参数是配置对象，包含data和headers
+  return await http.post(url, {
+    data: formData,
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -100,7 +93,9 @@ export const updateProjectDocument = async (documentId: number, data: ProjectDoc
  */
 export const deleteProjectDocument = async (documentId: number) => {
   // 修正API路径
-  return await http.delete(`${API_BASE}/documents/${documentId}`);
+  // return await http.delete(`${API_BASE}/documents/${documentId}`);
+  return await http.post(`${API_BASE}/documents/${documentId}/delete`, {}, { method: 'DELETE' });
+  
 }
 
 // 下载项目文档文件

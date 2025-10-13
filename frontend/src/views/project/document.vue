@@ -247,7 +247,7 @@ const submitForm = async () => {
 // 删除文档
 const handleDelete = async (id: number) => {
   try {
-    await documentApi.deleteProjectDocument(projectId, id)
+    await documentApi.deleteProjectDocument(id)
     ElMessage.success('文档删除成功')
     loadDocuments()
   } catch (error) {
