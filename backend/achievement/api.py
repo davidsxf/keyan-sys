@@ -6,7 +6,7 @@ from ninja import Router
 from .models import Author, Journal, Paper
 from .schemas import (
     AuthorIn, AuthorOut, JournalIn, JournalOut, PaperIn, PaperOut,
-    AuthorFilter, JournalFilter, PaperFilter
+    AuthorFilter, JournalFilter, PaperFilter, JournalMetricIn, JournalMetricOut
 )
 from users.models import Staff
 
@@ -99,6 +99,15 @@ def delete_author(request, author_id: int):
     author.delete()
     return 204, None
 
+def _journal_to_out(journal: Journal) -> JournalOut:
+    """将Journal模型转换为JournalOut输出模型，包含年度指标"""
+    journal_data = JournalOut.from_orm(journal)
+    # 添加期刊的所有年度指标
+    journal_data.metrics = [
+        JournalMetricOut.from_orm(metric) for metric in journal.metrics.all()
+    ]
+    return journal_data
+
 # 期刊相关接口
 @router.post("/journals/", response=JournalOut)
 def create_journal(request, data: JournalIn):
@@ -108,7 +117,7 @@ def create_journal(request, data: JournalIn):
         raise HttpError(400, "该ISSN已存在")
     
     journal = Journal.objects.create(**data.dict())
-    return journal
+    return _journal_to_out(journal)
 
 @router.get("/journals/", response=List[JournalOut])
 def list_journals(request, filters: JournalFilter = None, skip: int = 0, limit: int = 100):
@@ -128,13 +137,15 @@ def list_journals(request, filters: JournalFilter = None, skip: int = 0, limit: 
     
     # 分页
     journals = journals[skip:skip + limit]
-    return journals
+    
+    # 转换为输出模型，包含年度指标
+    return [_journal_to_out(journal) for journal in journals]
 
 @router.get("/journals/{journal_id}/", response=JournalOut)
 def get_journal(request, journal_id: int):
     """获取单个期刊详情"""
     journal = get_object_or_404(Journal, id=journal_id)
-    return journal
+    return _journal_to_out(journal)
 
 @router.put("/journals/{journal_id}/", response=JournalOut)
 def update_journal(request, journal_id: int, data: JournalIn):
@@ -148,7 +159,7 @@ def update_journal(request, journal_id: int, data: JournalIn):
     for attr, value in data.dict().items():
         setattr(journal, attr, value)
     journal.save()
-    return journal
+    return _journal_to_out(journal)
 
 @router.delete("/journals/{journal_id}/", response={204: None})
 def delete_journal(request, journal_id: int):
@@ -158,6 +169,57 @@ def delete_journal(request, journal_id: int):
     if journal.papers.exists():
         raise HttpError(400, "该期刊关联了论文，无法删除")
     journal.delete()
+    return 204, None
+
+# 期刊年度指标相关接口
+@router.post("/journals/{journal_id}/metrics/", response=JournalMetricOut)
+def create_journal_metric(request, journal_id: int, data: JournalMetricIn):
+    """创建期刊年度指标"""
+    journal = get_object_or_404(Journal, id=journal_id)
+    
+    # 检查该年份的指标是否已存在
+    if journal.metrics.filter(year=data.year).exists():
+        raise HttpError(400, f"该期刊的{data.year}年指标已存在")
+    
+    metric = journal.metrics.create(**data.dict())
+    return JournalMetricOut.from_orm(metric)
+
+@router.get("/journals/{journal_id}/metrics/", response=List[JournalMetricOut])
+def list_journal_metrics(request, journal_id: int):
+    """获取期刊的所有年度指标"""
+    journal = get_object_or_404(Journal, id=journal_id)
+    metrics = journal.metrics.all().order_by('-year')
+    return [JournalMetricOut.from_orm(metric) for metric in metrics]
+
+@router.get("/journals/{journal_id}/metrics/{year}/", response=JournalMetricOut)
+def get_journal_metric_by_year(request, journal_id: int, year: int):
+    """获取特定年份的期刊指标"""
+    journal = get_object_or_404(Journal, id=journal_id)
+    metric = get_object_or_404(journal.metrics, year=year)
+    return JournalMetricOut.from_orm(metric)
+
+@router.put("/journals/{journal_id}/metrics/{year}/", response=JournalMetricOut)
+def update_journal_metric(request, journal_id: int, year: int, data: JournalMetricIn):
+    """更新期刊年度指标"""
+    # 确保传入的年份与URL中的年份一致
+    if data.year != year:
+        raise HttpError(400, "请求数据中的年份与URL中的年份不一致")
+    
+    journal = get_object_or_404(Journal, id=journal_id)
+    metric = get_object_or_404(journal.metrics, year=year)
+    
+    # 更新指标信息
+    for attr, value in data.dict().items():
+        setattr(metric, attr, value)
+    metric.save()
+    return JournalMetricOut.from_orm(metric)
+
+@router.delete("/journals/{journal_id}/metrics/{year}/", response={204: None})
+def delete_journal_metric(request, journal_id: int, year: int):
+    """删除期刊年度指标"""
+    journal = get_object_or_404(Journal, id=journal_id)
+    metric = get_object_or_404(journal.metrics, year=year)
+    metric.delete()
     return 204, None
 
 # 论文相关接口

@@ -28,17 +28,48 @@ class Author(models.Model):
         verbose_name = _("作者")
         verbose_name_plural = _("作者")
 
+class JournalMetric(models.Model):
+    """期刊年度指标模型 - 存储期刊每年变化的指标数据"""
+    journal = models.ForeignKey(
+        'Journal', 
+        on_delete=models.CASCADE, 
+        related_name='metrics',
+        verbose_name=_('所属期刊')
+    )
+    year = models.IntegerField(_('年份'))
+    jcr_quartile = models.CharField(_('JCR分区'), max_length=10, blank=True)
+    impact_factor = models.FloatField(_('影响因子'), blank=True, null=True)
+    created_at = models.DateTimeField(_('创建时间'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('更新时间'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('期刊年度指标')
+        verbose_name_plural = _('期刊年度指标')
+        unique_together = ('journal', 'year')  # 确保一个期刊每年只有一条指标记录
+
 class Journal(models.Model):
     """期刊信息模型"""
     name = models.CharField(_("刊名"), max_length=200)
     issn = models.CharField(_("ISSN"), max_length=20, unique=True)
-    jcr_quartile = models.CharField(_("JCR分区"), max_length=10, blank=True)
-    impact_factor = models.FloatField(_("影响因子"), blank=True, null=True)
+    # 通过metrics关系获取特定年份的数据
+    # jcr_quartile = models.CharField(_("JCR分区(当前)"), max_length=10, blank=True)
+    # impact_factor = models.FloatField(_("影响因子(当前)"), blank=True, null=True)
     created_at = models.DateTimeField(_("创建时间"), auto_now_add=True)
     updated_at = models.DateTimeField(_("更新时间"), auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def get_metric_for_year(self, year):
+        """获取指定年份的期刊指标"""
+        try:
+            return self.metrics.get(year=year)
+        except JournalMetric.DoesNotExist:
+            return None
+
+    def get_latest_metric(self):
+        """获取最新的期刊指标"""
+        return self.metrics.order_by('-year').first()
 
     class Meta:
         verbose_name = _("期刊")

@@ -1,5 +1,11 @@
 // 项目预算类型定义
 
+// 通用选项类型定义
+export interface Choice {
+  value: string | number;
+  label: string;
+}
+
 export interface ProjectBudget {
   id: number;
   project_id: number;
@@ -74,6 +80,22 @@ updateProjectBudget: async (id: number, data: ProjectBudgetForm): Promise<Projec
   
   // 获取预算类型选项
   getBudgetTypeChoices: async (): Promise<Choice[]> => {
-    return await http.get(`${API_BASE}/types`);
+    try {
+      const response = await http.get(`${API_BASE}/types`);
+      // 确保返回的数据是Choice[]类型
+      if (Array.isArray(response)) {
+        return response;
+      } else if (response && response.items) {
+        return response.items;
+      }
+      return [];
+    } catch (error) {
+      console.error('获取预算类型失败:', error);
+      // 返回默认的预算类型选项作为备选
+      return [
+        { value: 'income', label: '到账经费' },
+        { value: 'expense', label: '外拨经费' },
+      ];
+    }
   },
 };

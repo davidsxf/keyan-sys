@@ -34,6 +34,24 @@ class JournalIn(Schema):
     impact_factor: Optional[float] = None
 
 
+class JournalMetricIn(Schema):
+    """期刊年度指标输入模型"""
+    year: int
+    jcr_quartile: Optional[str] = None
+    impact_factor: Optional[float] = None
+
+
+class JournalMetricOut(Schema):
+    """期刊年度指标输出模型"""
+    id: int
+    journal_id: int
+    year: int
+    jcr_quartile: Optional[str] = None
+    impact_factor: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class JournalOut(Schema):
     """期刊信息输出模型"""
     id: int
@@ -43,6 +61,7 @@ class JournalOut(Schema):
     impact_factor: Optional[float] = None
     created_at: datetime
     updated_at: datetime
+    metrics: Optional[List[JournalMetricOut]] = None  # 期刊所有年度指标
 
 
 class PaperIn(Schema):

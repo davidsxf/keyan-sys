@@ -16,7 +16,7 @@
         <el-form-item label="预算名称">
           <el-input v-model="filterForm.name" placeholder="请输入预算名称" clearable />
         </el-form-item>
-        <el-form-item label="预算类型">
+        <el-form-item label="预算类型" width="150">
           <el-select v-model="filterForm.type" placeholder="请选择预算类型" clearable>
             <el-option
               v-for="item in budgetTypeChoices"
@@ -404,9 +404,8 @@ const handleProjectDetailClose = () => {
 const getBudgetTypeTagType = (type: string): string => {
   const typeMap: Record<string, string> = {
     'INCOME': 'success',
-    'EXPENSE': 'danger',
-    'COORDINATION': 'primary',
-    'OTHER': 'warning'
+    'EXPENSE': 'danger'
+
   };
   return typeMap[type] || 'info';
 };
