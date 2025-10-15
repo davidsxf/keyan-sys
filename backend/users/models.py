@@ -23,6 +23,7 @@ class Team(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
+    research_field = models.CharField(max_length=255, null=True, blank=True, verbose_name='研究领域')
     department = models.ForeignKey('Department',null=True, blank=True, related_name='teams', on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

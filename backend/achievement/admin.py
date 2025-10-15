@@ -71,8 +71,8 @@ class JournalAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'issn',
-        'jcr_quartile',
-        'impact_factor',
+        'current_jcr_quartile',
+        'current_impact_factor',
         'paper_count',
         'created_at',
         'updated_at'
@@ -80,7 +80,7 @@ class JournalAdmin(admin.ModelAdmin):
     # 搜索字段
     search_fields = ('name', 'issn')
     # 过滤器
-    list_filter = ('jcr_quartile', 'created_at', 'updated_at')
+    list_filter = ('created_at', 'updated_at')
     # 排序字段
     ordering = ('name',)
     # 详细页面的字段分组
@@ -89,12 +89,6 @@ class JournalAdmin(admin.ModelAdmin):
             _('基本信息'),
             {
                 'fields': ('name', 'issn')
-            }
-        ),
-        (
-            _('学术指标'),
-            {
-                'fields': ('jcr_quartile', 'impact_factor')
             }
         ),
         (
@@ -111,12 +105,26 @@ class JournalAdmin(admin.ModelAdmin):
     autocomplete_fields = ()
 
     def paper_count(self, obj):
-        """\显示该期刊的论文数量"""
+        """显示该期刊的论文数量"""
         count = obj.papers.count()
         url = reverse('admin:achievement_paper_changelist') + f'?journal__id={obj.id}'
         return format_html('<a href="{}">{}</a>', url, count)
 
     paper_count.short_description = _('论文数量')
+    
+    def current_jcr_quartile(self, obj):
+        """显示最新的JCR分区信息"""
+        latest_metric = obj.get_latest_metric()
+        return latest_metric.jcr_quartile if latest_metric else '-'    
+    
+    current_jcr_quartile.short_description = _('最新JCR分区')
+    
+    def current_impact_factor(self, obj):
+        """显示最新的影响因子信息"""
+        latest_metric = obj.get_latest_metric()
+        return latest_metric.impact_factor if latest_metric else '-'    
+    
+    current_impact_factor.short_description = _('最新影响因子')
 
 
 class FirstAuthorInline(admin.TabularInline):
@@ -165,7 +173,6 @@ class PaperAdmin(admin.ModelAdmin):
     # 过滤器
     list_filter = (
         'publication_year',
-        'journal__jcr_quartile',
         'created_at',
         'updated_at'
     )

@@ -29,7 +29,7 @@ class DepartmentAdmin(ImportExportModelAdmin):
 class TeamResource(resources.ModelResource):
     class Meta:
         model = Team
-        fields = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
+        fields = ('id', 'name', 'description', 'research_field', 'department', 'created_at', 'updated_at')
 
 class StaffResource(resources.ModelResource):
     # 使用 ForeignKeyWidget 通过名称关联部门和团队
@@ -62,7 +62,7 @@ class StaffAdmin(ImportExportModelAdmin):
 @admin.register(Team)
 class TeamAdmin(ImportExportModelAdmin):
     resource_class = TeamResource
-    list_display = ('id', 'name', 'description', 'department', 'created_at', 'updated_at')
-    search_fields = ('name', 'description')
+    list_display = ('id', 'name', 'description', 'research_field', 'department', 'created_at', 'updated_at')
+    search_fields = ('name', 'description', 'research_field')
     list_filter = ('department', 'created_at', 'updated_at')
     ordering = ('-created_at',)

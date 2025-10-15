@@ -106,6 +106,7 @@ def create_team(request, data: TeamIn):
     team = Team.objects.create(
         name=data.name,
         description=data.description,
+        research_field=data.research_field,
         department=department
     )
     
@@ -127,7 +128,8 @@ def list_teams(request, search: Optional[str] = None,
     if search:
         teams = teams.filter(
             Q(name__icontains=search) |
-            Q(description__icontains=search)
+            Q(description__icontains=search) |
+            Q(research_field__icontains=search)
         )
     
     # 按部门筛选
@@ -175,6 +177,7 @@ def update_team(request, team_id: int, data: TeamIn):
     
     team.name = data.name
     team.description = data.description
+    team.research_field = data.research_field
     team.department = department
     team.save()
     
@@ -195,6 +198,7 @@ def prepare_team_response(team):
         "id": team.id,
         "name": team.name,
         "description": team.description,
+        "research_field": team.research_field,
         "department_id": team.department.id if team.department else None,
         "department_name": team.department.name if team.department else None,
         "created_at": team.created_at,
