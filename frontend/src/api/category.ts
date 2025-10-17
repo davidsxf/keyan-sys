@@ -20,7 +20,7 @@ const API_BASE = '/api/v1/core'
 
 export const categoryApi = {
   // 获取分类树
-  async getCategories(search?: string, page = 1, limit = 10): Promise<Category[]> {
+  async getCategories(search?: string, page = 1, limit = 10): Promise<{data: Category[], total: number}> {
     const params = new URLSearchParams();
     params.append('skip', String((page - 1) * limit));
     params.append('limit', String(limit));

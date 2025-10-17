@@ -148,7 +148,7 @@ getLevelChoices: async (): Promise<Choice[]> => {
   // 获取负责人选项
   getLeaderChoices: async (): Promise<Choice[]> => {
     // 调用新的 API 接口获取负责人列表
-    return await http.get('/api/v1/users/staffs/choices');
+    return await http.get(`/api/v1/users/staffs/choices`);
   },
   // 获取类型选项
   getTypeChoices: async (): Promise<Choice[]> => {

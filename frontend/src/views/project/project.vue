@@ -125,7 +125,7 @@
         <el-table-column prop="number" label="项目编号" width="120" />
         <el-table-column prop="title" label="项目名称" min-width="200">
           <template #default="{ row }">
-            <a href="javascript:void(0)" class="project-title-link" @click="showProjectDetail(row)">
+            <a href="javascript:void(0)" @click="goToProjectDetail(row.id)" class="project-title-link">
               {{ row.title }}
             </a>
           </template>
@@ -176,7 +176,6 @@
 
 
     <!-- 项目表单对话框 -->
-    <!-- 在项目表单对话框后添加详情对话框 -->
     <project-form-dialog
       v-model="dialogVisible"
       :project="currentProject"
@@ -184,35 +183,6 @@
       :undertake-choices="undertakeChoices"
       @success="handleFormSuccess"
     />
-    
-    <!-- 项目详情对话框 -->
-    <el-dialog
-      v-model="detailDialogVisible"
-      title="项目详情"
-      width="70%"
-      @close="resetDetailDialog"
-    >
-      <div v-if="selectedProject" class="project-detail">
-    
-        <el-descriptions title="基本信息" :column="2"> <!-- 使用v-bind或简写:column="2"确保传递数字类型 -->
-          <el-descriptions-item label="项目编号">{{ selectedProject.number }}</el-descriptions-item>
-          <el-descriptions-item label="项目名称">{{ selectedProject.title }}</el-descriptions-item>
-          <el-descriptions-item label="项目负责人">{{ selectedProject.leader_name }}</el-descriptions-item>
-          <el-descriptions-item label="项目状态"><el-tag :type="getStatusTagType(selectedProject.status)">{{ selectedProject.status_display }}</el-tag></el-descriptions-item>
-<el-descriptions-item label="项目级别">{{ selectedProject.level_name || '-' }}</el-descriptions-item> <!-- 添加项目级别显示，设置默认值 -->
-
-          <el-descriptions-item label="项目类别">{{ selectedProject.type_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
-                    <el-descriptions-item label="项目类型">{{ selectedProject.category_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
-          <el-descriptions-item label="项目来源">{{ selectedProject.source_name || '-' }}</el-descriptions-item> <!-- 添加默认显示值 -->
-          <el-descriptions-item label="承担方式">{{ selectedProject.undertake_display }}</el-descriptions-item>
-          <el-descriptions-item label="预算(万元)">{{ selectedProject.budget ? formatCurrency(selectedProject.budget) : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="研究领域">{{ selectedProject.research_area || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="开始日期">{{ selectedProject.start_date }}</el-descriptions-item>
-          <el-descriptions-item label="结束日期">{{ selectedProject.end_date }}</el-descriptions-item>
-          <el-descriptions-item label="备注" :span="2">{{ selectedProject.remark || '-' }}</el-descriptions-item>
-        </el-descriptions>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
@@ -220,9 +190,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox, ElDialog, ElDescriptions, ElDescriptionsItem, ElTag } from 'element-plus';
+import { useRouter } from 'vue-router';
 import { Project, ProjectFilter } from '@/api/project';
 import { projectApi } from '@/api/project';
 import ProjectFormDialog from './ProjectFormDialog.vue';
+
+const router = useRouter();
 
 
 const projects = ref<Project[]>([]);
@@ -232,10 +205,7 @@ const currentProject = ref<Project | null>(null);
 const statusChoices = ref<any[]>([]);
 const undertakeChoices = ref<any[]>([]);
 const levelChoices = ref<any[]>([]); // 项目级别选择
-const typeChoices = ref<any[]>([]); // 项目类别选择
-// 项目详情对话框相关变量
-const detailDialogVisible = ref(false);
-const selectedProject = ref<Project | null>(null);
+const typeChoices = ref<any[]>([]); // 项目类别选择;
 
 const sourceChoices = ref<any[]>([]); // 项目来源选择
 
@@ -414,17 +384,13 @@ const deleteProject = async (project: Project) => {
   }
 };
 
-// 显示项目详情
-const showProjectDetail = (project: Project) => {
-  
-  selectedProject.value = project;
-  console.log('selectedProject.value', selectedProject.value);
-  detailDialogVisible.value = true;
-};
-
-// 重置详情对话框
-const resetDetailDialog = () => {
-  selectedProject.value = null;
+// 跳转到项目详情页面
+const goToProjectDetail = (projectId: number) => {
+  // 使用Vue Router在当前窗口导航到项目详情页面
+  router.push({
+    path: '/project/projectDetail',
+    query: { projectld: projectId }
+  });
 };
 
 // 表单提交成功处理
@@ -513,10 +479,5 @@ onMounted(() => {
 .project-title-link:hover {
   color: #66b1ff;
   text-decoration: underline;
-}
-
-/* 项目详情样式 */
-.project-detail {
-  padding: 10px 0;
 }
 </style>

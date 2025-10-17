@@ -2,6 +2,7 @@ export interface Team {
   id: number;
   name: string;
   description?: string;
+  research_field?: string;
   department_id?: number;
   department_name?: string;
   created_at: string;
@@ -12,6 +13,7 @@ export interface Team {
 export interface TeamForm {
   name: string;
   description?: string;
+  research_field?: string;
   department_id?: number | null;
 }
 

@@ -127,12 +127,21 @@ const dialogTitle = computed(() => isEditing.value ? '编辑分类' : '添加分
 const loadCategories = async () => {
   try {
     loading.value = true
-    categories.value = await categoryApi.getCategories(searchKeyword.value, currentPage.value, pageSize.value)
-    // 对于树形结构的分类，totalCount应该是根节点的总数
-    // 由于后端API返回的是完整的树形结构，我们直接获取返回的根节点数量作为totalCount
-    totalCount.value = categories.value.length
+    const response = await categoryApi.getCategories(searchKeyword.value, currentPage.value, pageSize.value)
+    
+    // 处理API返回的分页格式 {data: [], total: 100}
+    if (response && response.data && Array.isArray(response.data)) {
+      categories.value = response.data
+      totalCount.value = response.total || 0
+    } else {
+      // 兜底处理
+      categories.value = []
+      totalCount.value = 0
+    }
   } catch (error) {
     ElMessage.error('加载分类失败')
+    categories.value = []
+    totalCount.value = 0
   } finally {
     loading.value = false
   }

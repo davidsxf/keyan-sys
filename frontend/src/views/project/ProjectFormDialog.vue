@@ -231,48 +231,35 @@ const typeOptions = ref<Choice[]>([]);
 
 const sourceOptions = ref<{ id: number; name: string }[]>([]);
 
-// 加载员工数据
+// 加载员工数据（负责人选项）
 const loadStaffOptions = async () => {
   try {
-    const staffs = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 1000);
-    leaderOptions.value = staffs.map((staff: Staff) => ({ id: staff.id, name: staff.name }));
+    // 使用projectApi中的getLeaderChoices方法获取负责人选项
+    const leaders = await projectApi.getLeaderChoices();
+    // 确保数据格式正确
+    leaderOptions.value = leaders.map((leader: any) => ({
+      id: leader.value,
+      name: leader.label
+    }));
   } catch (error) {
-    console.error('加载员工数据失败:', error);
+    console.error('加载负责人选项失败:', error);
+    ElMessage.error('加载负责人选项失败');
   }
 };
 
 // 加载类别数据
 const loadCategoryOptions = async () => {
   try {
-    // 修改方法名，与project.ts中的定义保持一致
-    const categories = await categoryApi.getCategories();
-    
-    // 创建一个空数组来存储所有类别（包括子类别）
-    const allCategories: { id: number; name: string }[] = [];
-    
-    // 递归函数，用于处理分类树
-    const processCategories = (categories: Category[], level = 0) => {
-      for (const category of categories) {
-        // 添加前缀来表示层级关系
-        const prefix = level > 0 ? '├─ '.repeat(level) : '';
-        allCategories.push({
-          id: category.id,
-          name: `${prefix}${category.name}`
-        });
-        
-        // 如果有子类别，递归处理
-        if (category.children && category.children.length > 0) {
-          processCategories(category.children, level + 1);
-        }
-      }
-    };
-    
-    // 处理根类别
-    processCategories(categories);
-    
-    categoryOptions.value = allCategories;
+    // 使用projectApi中的getCategoryChoices方法获取项目类别选项
+    // 这与获取其他选项（如type、status等）的方式保持一致
+    const categories = await projectApi.getCategoryChoices();
+    categoryOptions.value = categories.map((category: any) => ({
+      id: category.value,
+      name: category.label
+    }));
   } catch (error) {
     console.error('加载类别数据失败:', error);
+    ElMessage.error('加载类别数据失败');
   }
 };
 
@@ -345,7 +332,7 @@ const formData = reactive<ProjectForm>({
   leader_id: undefined,
   start_date: '',
   end_date: '',
-  status: 'APPROVED',
+  status: 'IN_PROGRESS',
   category_id: undefined,
   type: undefined,
   budget: undefined,

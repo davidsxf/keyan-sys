@@ -16,7 +16,7 @@ def create_category(request, data: CategoryIn):
     category = Category.objects.create(**data.dict())
     return {"id": category.id}
 
-@router.get("/categories/", response=List[CategoryOut])
+@router.get("/categories/", response=dict)
 def list_categories(request, search: Optional[str] = None, 
               skip: int = 0, limit: int = 100):
 
@@ -46,13 +46,20 @@ def list_categories(request, search: Optional[str] = None,
         # 如果没有搜索条件，只返回根节点（parent为空）
         categories = categories.filter(parent__isnull=True)
     
+    # 计算总记录数
+    total = categories.count()
+    
     # 分页：对根节点进行分页
     paged_root_categories = categories[skip:skip + limit]
     
     # 使用build_category_tree构建完整的分类树
     paged_tree = build_category_tree(paged_root_categories)
     
-    return paged_tree
+    # 返回标准分页格式
+    return {
+        'total': total,
+        'data': paged_tree
+    }
 
 
 def build_category_tree(queryset):

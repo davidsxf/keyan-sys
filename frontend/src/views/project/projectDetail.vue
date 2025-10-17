@@ -577,7 +577,7 @@ import { downloadFile } from '@/utils/http';
 // 路由和参数
 const route = useRoute();
 const router = useRouter();
-const selectedProjectId = ref(Number(route.query.id || 0));
+const selectedProjectId = ref(Number(route.query.projectld || route.query.id || 0));
 
 // 添加项目列表相关变量
 const projects = ref<any[]>([]);

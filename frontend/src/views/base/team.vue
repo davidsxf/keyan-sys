@@ -15,7 +15,7 @@
       <div class="search-bar">
         <el-input
           v-model="searchKeyword"
-          placeholder="搜索团队名称或描述"
+          placeholder="搜索团队名称、描述或研究领域"
           style="width: 300px"
           @keyup.enter="loadTeams"
         >
@@ -48,6 +48,7 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="name" label="团队名称" />
         <el-table-column prop="description" label="描述" />
+        <el-table-column prop="research_field" label="研究领域" />
         <el-table-column prop="department_name" label="所属部门" />
         <el-table-column prop="created_at" label="创建时间">
           <template #default="{ row }">
@@ -112,6 +113,9 @@
             :rows="3"
           />
         </el-form-item>
+        <el-form-item label="研究领域">
+          <el-input v-model="form.research_field" placeholder="请输入团队主要研究领域" />
+        </el-form-item>
       </el-form>
       
       <template #footer>
@@ -153,6 +157,7 @@ const formRef = ref<FormInstance>()
 const form = reactive<TeamForm>({
   name: '',
   description: '',
+  research_field: '',
   department_id: null
 })
 
@@ -204,6 +209,7 @@ const showCreateDialog = () => {
   Object.assign(form, {
     name: '',
     description: '',
+    research_field: '',
     department_id: null
   })
   dialogVisible.value = true
@@ -216,6 +222,7 @@ const editTeam = (team: Team) => {
   Object.assign(form, {
     name: team.name,
     description: team.description || '',
+    research_field: team.research_field || '',
     department_id: team.department_id || null
   })
   dialogVisible.value = true
