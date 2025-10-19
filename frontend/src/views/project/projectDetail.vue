@@ -47,7 +47,7 @@
           <el-descriptions-item label="经费编号" :span="1">{{ project.funding_number || '-' }}</el-descriptions-item>
           <el-descriptions-item label="开始日期" :span="1">{{ project.start_date || '-' }}</el-descriptions-item>
           <el-descriptions-item label="结束日期" :span="1">{{ project.end_date || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="研究领域" :span="3">{{ project.research_area || '-' }}</el-descriptions-item>
+      
           <el-descriptions-item label="备注" :span="3">{{ project.remark || '-' }}</el-descriptions-item>
         </el-descriptions>
       </div>

@@ -30,8 +30,8 @@ class JournalIn(Schema):
     """期刊信息输入模型"""
     name: str
     issn: str
-    jcr_quartile: Optional[str] = None
-    impact_factor: Optional[float] = None
+    # jcr_quartile: Optional[str] = None
+    # impact_factor: Optional[float] = None
 
 
 class JournalMetricIn(Schema):
@@ -57,8 +57,8 @@ class JournalOut(Schema):
     id: int
     name: str
     issn: str
-    jcr_quartile: Optional[str] = None
-    impact_factor: Optional[float] = None
+    # jcr_quartile: Optional[str] = None
+    # impact_factor: Optional[float] = None
     created_at: datetime
     updated_at: datetime
     metrics: Optional[List[JournalMetricOut]] = None  # 期刊所有年度指标
@@ -105,8 +105,7 @@ class JournalFilter(Schema):
     """期刊过滤条件模型"""
     name: Optional[str] = None
     issn: Optional[str] = None
-    jcr_quartile: Optional[str] = None
-    min_impact_factor: Optional[float] = None
+
 
 
 class PaperFilter(Schema):

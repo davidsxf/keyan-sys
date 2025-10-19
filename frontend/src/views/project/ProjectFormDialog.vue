@@ -88,6 +88,21 @@
         </el-select>
       </el-form-item>
 
+      <el-form-item label="项目级别" prop="level">
+        <el-select
+          v-model="formData.level"
+          placeholder="请选择项目级别"
+          clearable
+        >
+          <el-option
+            v-for="level in levelOptions"
+            :key="level.value"
+            :label="level.label"
+            :value="level.value"
+          />
+        </el-select>
+      </el-form-item>
+
       <el-form-item label="预算(万元)">
         <el-input-number
           v-model="formData.budget"
@@ -152,14 +167,7 @@
       </el-form-item>
 
 
-      <el-form-item label="研究领域">
-        <el-input
-          v-model="formData.research_area"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入研究领域"
-        />
-      </el-form-item>
+    
 
 
       <el-form-item label="项目描述">
@@ -228,6 +236,7 @@ watch(
 const leaderOptions = ref<{ id: number; name: string }[]>([]);
 const categoryOptions = ref<{ id: number; name: string }[]>([]);
 const typeOptions = ref<Choice[]>([]);
+const levelOptions = ref<Choice[]>([]);
 
 const sourceOptions = ref<{ id: number; name: string }[]>([]);
 
@@ -274,13 +283,24 @@ const loadTypeOptions = async () => {
   }
 };
 
+// 加载项目级别数据
+const loadLevelOptions = async () => {
+  try {
+    const levels = await projectApi.getLevelChoices();
+    levelOptions.value = levels;
+  } catch (error) {
+    console.error('加载项目级别数据失败:', error);
+  }
+};
+
 // 加载组织数据
 const loadOrgOptions = async () => {
   try {
     // 修改方法名，与project.ts中的定义保持一致
-    const orgs = await orgApi.getOrgs()
-    console.log('orgs', orgs);
-    sourceOptions.value = orgs.map((org: Org) => ({ id: org.id, name: org.name }));
+    const response = await orgApi.getOrgs()
+    console.log('orgs response:', response);
+    // 正确处理返回的数据结构 {data: Org[], total: number}
+    sourceOptions.value = response.data.map((org: Org) => ({ id: org.id, name: org.name }));
   } catch (error) {
     console.error('加载组织数据失败:', error);
   }
@@ -290,11 +310,12 @@ const loadOrgOptions = async () => {
 watch(visible, (val) => {
   emit('update:modelValue', val);
   if (val) {
-    // 加载所有下拉选项数据
-    loadStaffOptions();
-    loadCategoryOptions();
-    loadTypeOptions();
-    loadOrgOptions();
+      // 加载所有下拉选项数据
+      loadStaffOptions();
+      loadCategoryOptions();
+      loadTypeOptions();
+      loadOrgOptions();
+      loadLevelOptions();
     
     if (props.project) {
       // 编辑模式，填充表单数据
@@ -308,8 +329,8 @@ watch(visible, (val) => {
         status: props.project.status,
         category_id: props.project.category_id || undefined,
         type: props.project.type || undefined,
+        level: props.project.level || 'NATIONAL',
         budget: props.project.budget || undefined,
-        research_area: props.project.research_area || '',
         source_id: props.project.source_id || undefined,
         undertake: props.project.undertake,
         remark: props.project.remark || '',
@@ -335,8 +356,9 @@ const formData = reactive<ProjectForm>({
   status: 'IN_PROGRESS',
   category_id: undefined,
   type: undefined,
+  level: 'NATIONAL',
   budget: undefined,
-  research_area: '',
+
   source_id: undefined,
   undertake: 'HOST',
   remark: '',
@@ -350,6 +372,7 @@ const formRules: FormRules = {
   status: [{ required: true, message: '请选择项目状态', trigger: 'change' }],
   category_id: [{ required: true, message: '请选择项目类别', trigger: 'change' }],
   type: [{ required: true, message: '请选择项目类型', trigger: 'change' }],
+  level: [{ required: true, message: '请选择项目级别', trigger: 'change' }],
   undertake: [{ required: true, message: '请选择承担方式', trigger: 'change' }],
 };
 

@@ -132,11 +132,7 @@ class Project(models.Model):
         blank=True,
         verbose_name=_("预算(万元)")
     )
-    research_area = models.TextField(
-        null=True, 
-        blank=True,
-        verbose_name=_("研究领域")
-    )
+    
     source = models.ForeignKey(
         Org,
         related_name='org_projects',

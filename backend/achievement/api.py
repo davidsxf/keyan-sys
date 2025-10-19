@@ -120,7 +120,7 @@ def create_journal(request, data: JournalIn):
     return _journal_to_out(journal)
 
 @router.get("/journals/", response=List[JournalOut])
-def list_journals(request, filters: JournalFilter = None, skip: int = 0, limit: int = 100):
+def list_journals(request, filters: Optional[JournalFilter] = None, skip: int = 0, limit: int = 100):
     """获取期刊列表"""
     journals = Journal.objects.all().order_by("name")
     
@@ -129,12 +129,7 @@ def list_journals(request, filters: JournalFilter = None, skip: int = 0, limit: 
         if filters.name:
             journals = journals.filter(name__icontains=filters.name)
         if filters.issn:
-            journals = journals.filter(issn__icontains=filters.issn)
-        if filters.jcr_quartile:
-            journals = journals.filter(jcr_quartile=filters.jcr_quartile)
-        if filters.min_impact_factor is not None:
-            journals = journals.filter(impact_factor__gte=filters.min_impact_factor)
-    
+            journals = journals.filter(issn__icontains=filters.issn)    
     # 分页
     journals = journals[skip:skip + limit]
     

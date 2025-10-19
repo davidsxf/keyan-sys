@@ -16,7 +16,6 @@ class ProjectIn(Schema):
     category_id: Optional[int] = None
     type: Optional[str] = None
     budget: Optional[float] = None
-    research_area: Optional[str] = None
     source_id: Optional[int] = None
     undertake: str
     remark: Optional[str] = None
@@ -40,7 +39,6 @@ class ProjectOut(Schema):
     type: Optional[str] = None  # 类型
     type_name: Optional[str] = None  # 类型名称
     budget: Optional[float] = None
-    research_area: Optional[str] = None
     source_id: Optional[int] = None
     source_name: Optional[str] = None  # 来源单位名称
     undertake: str

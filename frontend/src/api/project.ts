@@ -17,7 +17,6 @@ export interface Project {
   type?: string;
   type_name?: string;
   budget?: number;
-  research_area?: string;
   source_id?: number;
   source_name?: string;
   undertake: string;
@@ -40,7 +39,6 @@ export interface ProjectForm {
   category_id?: number;
   type?: string;
   budget?: number;
-  research_area?: string;
   source_id?: number;
   undertake: string;
   remark?: string;
