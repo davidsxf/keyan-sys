@@ -18,14 +18,7 @@
           <el-form-item label="ISSN">
             <el-input v-model="searchForm.issn" placeholder="请输入ISSN" clearable style="width: 150px" />
           </el-form-item>
-          <el-form-item label="JCR分区">
-            <el-select v-model="searchForm.jcr_quartile" placeholder="请选择JCR分区" clearable style="width: 150px">
-              <el-option label="Q1" value="Q1" />
-              <el-option label="Q2" value="Q2" />
-              <el-option label="Q3" value="Q3" />
-              <el-option label="Q4" value="Q4" />
-            </el-select>
-          </el-form-item>
+       
           <el-form-item>
             <el-button type="primary" @click="handleSearch">查询</el-button>
             <el-button @click="handleReset">重置</el-button>
@@ -39,17 +32,17 @@
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="刊名" show-overflow-tooltip />
           <el-table-column prop="issn" label="ISSN" width="120" />
-          <el-table-column prop="jcr_quartile" label="JCR分区" width="100">
+          <el-table-column label="JCR分区/影响因子" width="180">
             <template #default="scope">
-              <el-tag v-if="scope.row.jcr_quartile" :type="getQuartileType(scope.row.jcr_quartile)">
-                {{ scope.row.jcr_quartile }}
-              </el-tag>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="impact_factor" label="影响因子" width="120">
-            <template #default="scope">
-              {{ scope.row.impact_factor || '-' }}
+              <div class="cursor-pointer text-primary hover:underline" @click="showJournalHistory(scope.row)">
+                <div v-if="scope.row.jcr_quartile || scope.row.impact_factor">
+                  <el-tag v-if="scope.row.jcr_quartile" :type="getQuartileType(scope.row.jcr_quartile)" size="small">
+                    {{ scope.row.jcr_quartile }}
+                  </el-tag>
+                  <span v-if="scope.row.impact_factor">{{ scope.row.impact_factor }}</span>
+                </div>
+                <span v-else>- 点击查看历史 -</span>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="created_at" label="创建时间" width="180" />
@@ -88,17 +81,7 @@
         <el-form-item label="ISSN" prop="issn">
           <el-input v-model="journalForm.issn" placeholder="请输入ISSN" />
         </el-form-item>
-        <el-form-item label="JCR分区" prop="jcr_quartile">
-          <el-select v-model="journalForm.jcr_quartile" placeholder="请选择JCR分区" clearable>
-            <el-option label="Q1" value="Q1" />
-            <el-option label="Q2" value="Q2" />
-            <el-option label="Q3" value="Q3" />
-            <el-option label="Q4" value="Q4" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="影响因子" prop="impact_factor">
-          <el-input v-model.number="journalForm.impact_factor" type="number" placeholder="请输入影响因子" />
-        </el-form-item>
+
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -116,6 +99,29 @@
           <el-button @click="deleteDialogVisible = false">取消</el-button>
           <el-button type="danger" @click="handleConfirmDelete">确定删除</el-button>
         </span>
+      </template>
+    </el-dialog>
+    
+    <!-- JCR分区和影响因子历史对话框 -->
+    <el-dialog v-model="historyDialogVisible" :title="`${currentJournal?.name} - 历史数据`" width="600px">
+      <el-table :data="journalHistory" style="width: 100%">
+        <el-table-column prop="year" label="年份" width="100" />
+        <el-table-column prop="jcr_quartile" label="JCR分区" width="100">
+          <template #default="scope">
+            <el-tag v-if="scope.row.jcr_quartile" :type="getQuartileType(scope.row.jcr_quartile)">
+              {{ scope.row.jcr_quartile }}
+            </el-tag>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="impact_factor" label="影响因子" width="120">
+          <template #default="scope">
+            {{ scope.row.impact_factor || '-' }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="historyDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>
@@ -145,7 +151,10 @@ const pagination = reactive({
 // 对话框状态
 const dialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
+const historyDialogVisible = ref(false);
 const currentJournalId = ref<number | null>(null);
+const currentJournal = ref<Journal | null>(null);
+const journalHistory = ref<Array<{year: string; jcr_quartile: string; impact_factor: number}>>([]);
 const dialogTitle = computed(() => currentJournalId.value ? '编辑期刊' : '添加期刊');
 
 // 期刊表单数据
@@ -199,6 +208,19 @@ const getQuartileType = (quartile: string) => {
     'Q4': 'info'
   };
   return typeMap[quartile] || 'default';
+};
+
+// 显示期刊历史数据对话框
+const showJournalHistory = (journal: Journal) => {
+  currentJournal.value = journal;
+  // 这里应该从API获取真实的历史数据
+  // 暂时使用模拟数据
+  journalHistory.value = [
+    { year: '2023', jcr_quartile: journal.jcr_quartile || 'Q1', impact_factor: journal.impact_factor || 5.2 },
+    { year: '2022', jcr_quartile: 'Q1', impact_factor: 4.9 },
+    { year: '2021', jcr_quartile: 'Q2', impact_factor: 4.5 }
+  ];
+  historyDialogVisible.value = true;
 };
 
 // 搜索

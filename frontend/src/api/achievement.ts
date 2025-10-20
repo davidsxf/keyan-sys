@@ -135,12 +135,55 @@ export const achievementApi = {
 
   // 作者相关API
   // 获取作者列表
-  getAuthors: async (): Promise<Author[]> => {
+  getAuthors: async (params?: any): Promise<Author[]> => {
     try {
-      const response = await http.get(`${API_BASE}/authors/`);
+      const response = await http.get(`${API_BASE}/authors/`, { params });
       return response;
     } catch (error) {
       console.error('获取作者列表失败:', error);
+      throw error;
+    }
+  },
+
+  // 获取单个作者
+  getAuthor: async (id: number): Promise<Author> => {
+    try {
+      const response = await http.get(`${API_BASE}/authors/${id}/`);
+      return response;
+    } catch (error) {
+      console.error(`获取作者 ${id} 详情失败:`, error);
+      throw error;
+    }
+  },
+
+  // 创建作者
+  createAuthor: async (data: AuthorForm): Promise<Author> => {
+    try {
+      const response = await http.post(`${API_BASE}/authors/`, { data });
+      return response;
+    } catch (error) {
+      console.error('创建作者失败:', error);
+      throw error;
+    }
+  },
+
+  // 更新作者
+  updateAuthor: async (id: number, data: AuthorForm): Promise<Author> => {
+    try {
+      const response = await http.post(`${API_BASE}/authors/${id}/`, { data }, { method: 'PUT' });
+      return response;
+    } catch (error) {
+      console.error(`更新作者 ${id} 失败:`, error);
+      throw error;
+    }
+  },
+
+  // 删除作者
+  deleteAuthor: async (id: number): Promise<void> => {
+    try {
+      await http.delete(`${API_BASE}/authors/${id}/`);
+    } catch (error) {
+      console.error(`删除作者 ${id} 失败:`, error);
       throw error;
     }
   },
