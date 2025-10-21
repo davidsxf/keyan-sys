@@ -12,7 +12,8 @@
           placeholder="请输入作者姓名"
           clearable
           class="search-input"
-          @change="handleSearch"
+          @input="handleSearch"
+          @clear="handleSearch"
         />
         <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon>
@@ -143,7 +144,7 @@ import { Back, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import type { FormInstance } from 'element-plus';
 import { achievementApi } from '@/api/achievement';
-import { staffApi } from '@/api/staff';
+import { staffApi, StaffStatus } from '@/api/staff';
 import type { Author, AuthorForm } from '@/api/achievement';
 
 // 路由
@@ -201,11 +202,9 @@ let currentAuthorId: number | null = null;
  */
 const loadStaffOptions = async () => {
   try {
-    // 调用员工API获取所有在职员工
-    const response = await staffApi.getStaffs();
-    staffOptions.value = response.data
-      .filter(staff => staff.status === '在职')
-      .map(staff => ({ id: staff.id, name: staff.name }));
+    // 调用员工API获取所有在职员工，设置较大的limit以获取完整列表
+    const response = await staffApi.getStaffs(undefined, undefined, undefined, StaffStatus.ON_DUTY, 1, 1000);
+    staffOptions.value = response.data.map(staff => ({ id: staff.id, name: staff.name }));
   } catch (error) {
     console.error('获取员工选项失败:', error);
     ElMessage.error('获取员工选项失败');
@@ -219,17 +218,25 @@ const loadStaffOptions = async () => {
 const loadAuthors = async () => {
   loading.value = true;
   try {
+    // 构建查询参数
     const params: any = {
+      // 后端可能使用不同的分页参数名，这里同时提供常用格式
       skip: (pagination.currentPage - 1) * pagination.pageSize,
-      limit: pagination.pageSize
+      limit: pagination.pageSize,
+      page: pagination.currentPage,
+      page_size: pagination.pageSize
     };
     
     // 应用搜索条件
-    if (searchForm.name) {
-      params.name = searchForm.name;
+    if (searchForm.name && searchForm.name.trim()) {
+      // 确保搜索参数被正确设置
+      params.name = searchForm.name.trim();
+      console.log('搜索参数:', params.name); // 添加日志便于调试
     }
 
+    console.log('请求参数:', params); // 添加日志记录完整请求参数
     const response = await achievementApi.getAuthors(params);
+    
     // 由于后端API可能返回不同格式，这里做兼容处理
     if (Array.isArray(response)) {
       authorList.value = response;
@@ -237,6 +244,10 @@ const loadAuthors = async () => {
     } else if (response.data && typeof response.total === 'number') {
       authorList.value = response.data;
       pagination.total = response.total;
+    } else {
+      // 直接使用响应作为数据（某些API可能直接返回数据数组）
+      authorList.value = response;
+      pagination.total = response.length || 0;
     }
   } catch (error) {
     console.error('获取作者列表失败:', error);
@@ -350,7 +361,9 @@ const handleSubmit = async () => {
  * 处理搜索
  */
 const handleSearch = () => {
+  // 重置为第一页
   pagination.currentPage = 1;
+  // 调用加载作者列表函数
   loadAuthors();
 };
 

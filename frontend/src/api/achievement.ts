@@ -126,7 +126,7 @@ export const achievementApi = {
   // 删除期刊
   deleteJournal: async (id: number): Promise<void> => {
     try {
-      await http.delete(`${API_BASE}/journals/${id}/`);
+      await http.post(`${API_BASE}/journals/${id}/`, {}, { method: 'DELETE' });
     } catch (error) {
       console.error(`删除期刊 ${id} 失败:`, error);
       throw error;
@@ -137,6 +137,32 @@ export const achievementApi = {
   // 获取作者列表
   getAuthors: async (params?: any): Promise<Author[]> => {
     try {
+      // 旧代码
+      // 构建请求参数对象
+      const requestParams: any = {};
+      
+      // 提取分页参数
+      if (params) {
+        if (params.skip !== undefined) requestParams.skip = params.skip;
+        if (params.limit !== undefined) requestParams.limit = params.limit;
+        if (params.page !== undefined) requestParams.page = params.page;
+        if (params.page_size !== undefined) requestParams.page_size = params.page_size;
+        
+        // 将过滤参数放入filters对象中
+        const filters: any = {};
+        if (params.name !== undefined) filters.name = params.name;
+        // ...其他过滤参数
+        
+        // 只有当filters对象不为空时才添加到请求参数中
+        if (Object.keys(filters).length > 0) {
+          requestParams.filters = filters;
+        }
+      }
+      
+      // 新代码
+      // 直接使用params对象，不进行额外封装
+      // 这样所有参数（包括name等过滤条件）都会直接作为查询参数传递
+      console.log('直接传递的请求参数:', params); // 添加日志记录传递的请求参数
       const response = await http.get(`${API_BASE}/authors/`, { params });
       return response;
     } catch (error) {
@@ -181,7 +207,7 @@ export const achievementApi = {
   // 删除作者
   deleteAuthor: async (id: number): Promise<void> => {
     try {
-      await http.delete(`${API_BASE}/authors/${id}/`);
+      await http.post(`${API_BASE}/authors/${id}/`, {}, { method: 'DELETE' });
     } catch (error) {
       console.error(`删除作者 ${id} 失败:`, error);
       throw error;

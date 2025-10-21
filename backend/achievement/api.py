@@ -92,6 +92,7 @@ def update_author(request, author_id: int, data: AuthorIn):
 @router.delete("/authors/{author_id}/", response={204: None})
 def delete_author(request, author_id: int):
     """删除作者信息"""
+    print(f"author_id: {author_id}")
     author = get_object_or_404(Author, id=author_id)
     # 检查是否有关联的论文
     if author.first_author_papers.exists() or author.corresponding_author_papers.exists():
