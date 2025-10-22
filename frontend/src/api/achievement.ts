@@ -137,34 +137,32 @@ export const achievementApi = {
   // 获取作者列表
   getAuthors: async (params?: any): Promise<Author[]> => {
     try {
-      // 旧代码
-      // 构建请求参数对象
+      // 构建符合后端期望的参数格式
       const requestParams: any = {};
       
-      // 提取分页参数
+      // 添加分页参数和过滤参数（直接作为顶级参数）
       if (params) {
+        // 添加分页参数
         if (params.skip !== undefined) requestParams.skip = params.skip;
         if (params.limit !== undefined) requestParams.limit = params.limit;
-        if (params.page !== undefined) requestParams.page = params.page;
-        if (params.page_size !== undefined) requestParams.page_size = params.page_size;
         
-        // 将过滤参数放入filters对象中
-        const filters: any = {};
-        if (params.name !== undefined) filters.name = params.name;
-        // ...其他过滤参数
+        // 直接将过滤参数添加为顶级参数，以匹配后端处理逻辑
+        if (params.name !== undefined) requestParams.name = params.name;
+        if (params.email !== undefined) requestParams.email = params.email;
+        if (params.has_staff !== undefined) requestParams.has_staff = params.has_staff;
+        if (params.external_organization !== undefined) requestParams.external_organization = params.external_organization;
         
-        // 只有当filters对象不为空时才添加到请求参数中
-        if (Object.keys(filters).length > 0) {
-          requestParams.filters = filters;
+        // 兼容可能存在的filters对象格式
+        if (params.filters && typeof params.filters === 'object') {
+          if (params.filters.name !== undefined) requestParams.name = params.filters.name;
+          if (params.filters.email !== undefined) requestParams.email = params.filters.email;
+          if (params.filters.has_staff !== undefined) requestParams.has_staff = params.filters.has_staff;
+          if (params.filters.external_organization !== undefined) requestParams.external_organization = params.filters.external_organization;
         }
       }
-      
-      // 新代码
-      // 直接使用params对象，不进行额外封装
-      // 这样所有参数（包括name等过滤条件）都会直接作为查询参数传递
-      console.log('直接传递的请求参数:', params); // 添加日志记录传递的请求参数
-      const response = await http.get(`${API_BASE}/authors/`, { params });
-      return response;
+
+      console.log('发送的API参数:', requestParams);
+      return await http.get(`${API_BASE}/authors/`, { params: requestParams });
     } catch (error) {
       console.error('获取作者列表失败:', error);
       throw error;

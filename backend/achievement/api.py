@@ -36,36 +36,71 @@ def create_author(request, data: AuthorIn):
     author = Author.objects.create(staff=staff, **author_dict)
     return _author_to_out(author)
 
+
 @router.get("/authors/", response=List[AuthorOut])
-def list_authors(request, filters: AuthorFilter = None, skip: int = 0, limit: int = 100):
+def list_authors(request, name: str = None, email: str = None, has_staff: bool = None, external_organization: str = None, skip: int = 0, limit: int = 100):
     """获取作者列表"""
+    print("调用list_authors接口")
+    
+    # 构建filters对象（如果有任何过滤条件）
+    filters = None
+    if name is not None or email is not None or has_staff is not None or external_organization is not None:
+        filters = AuthorFilter(
+            name=name,
+            email=email,
+            has_staff=has_staff,
+            external_organization=external_organization
+        )
+    
+    print(f"过滤参数: name={name}, email={email}, has_staff={has_staff}, external_organization={external_organization}")
+    """获取作者列表"""
+    print("调用list_authors接口")
+    
+    # 始终初始化authors查询集
     authors = Author.objects.all().order_by("name")
     
-    # 应用过滤条件
+    # 打印过滤条件信息
     if filters:
+        print(f"过滤条件: name={filters.name}, email={filters.email}, has_staff={filters.has_staff}")
+    else:
+        print("未提供过滤条件")
+    
+    # 应用过滤条件，确保每次都检查filters是否为None
+    if filters:
+        # 名称过滤
         if filters.name:
+            print(f"应用作者姓名过滤: {filters.name}")
             authors = authors.filter(name__icontains=filters.name)
+        
+        # 邮箱过滤
         if filters.email:
             authors = authors.filter(email__icontains=filters.email)
+        
+        # 员工关联状态过滤
         if filters.has_staff is not None:
             if filters.has_staff:
                 authors = authors.filter(staff__isnull=False)
             else:
                 authors = authors.filter(staff__isnull=True)
-        if filters.external_organization:
+        
+        # 外部机构过滤 - 注意：AuthorFilter中未定义此字段，可能需要从schemas.py中添加
+        if hasattr(filters, 'external_organization') and filters.external_organization:
             authors = authors.filter(external_organization__icontains=filters.external_organization)
     
-    # 分页
+    # 分页处理
     authors = authors[skip:skip + limit]
     
     # 转换为输出模型
     return [_author_to_out(author) for author in authors]
+
 
 @router.get("/authors/{author_id}/", response=AuthorOut)
 def get_author(request, author_id: int):
     """获取单个作者详情"""
     author = get_object_or_404(Author, id=author_id)
     return _author_to_out(author)
+
+
 
 @router.put("/authors/{author_id}/", response=AuthorOut)
 def update_author(request, author_id: int, data: AuthorIn):

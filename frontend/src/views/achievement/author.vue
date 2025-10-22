@@ -12,7 +12,7 @@
           placeholder="请输入作者姓名"
           clearable
           class="search-input"
-          @input="handleSearch"
+          @blur="handleSearch"
           @clear="handleSearch"
         />
         <el-button type="primary" @click="handleCreate">
@@ -218,20 +218,17 @@ const loadStaffOptions = async () => {
 const loadAuthors = async () => {
   loading.value = true;
   try {
-    // 构建查询参数
+    // 构建查询参数 - 只传递后端需要的参数
     const params: any = {
-      // 后端可能使用不同的分页参数名，这里同时提供常用格式
       skip: (pagination.currentPage - 1) * pagination.pageSize,
-      limit: pagination.pageSize,
-      page: pagination.currentPage,
-      page_size: pagination.pageSize
+      limit: pagination.pageSize
     };
     
     // 应用搜索条件
     if (searchForm.name && searchForm.name.trim()) {
       // 确保搜索参数被正确设置
-      params.name = searchForm.name.trim();
-      console.log('搜索参数:', params.name); // 添加日志便于调试
+      params.filters = params.filters || {};
+      params.filters.name = searchForm.name.trim();
     }
 
     console.log('请求参数:', params); // 添加日志记录完整请求参数

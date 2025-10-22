@@ -98,7 +98,9 @@ class AuthorFilter(Schema):
     name: Optional[str] = None
     email: Optional[str] = None
     has_staff: Optional[bool] = None
-    external_organization: Optional[str] = None
+    external_organization: Optional[str] = None    
+
+
 
 
 class JournalFilter(Schema):
