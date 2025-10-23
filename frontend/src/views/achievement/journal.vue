@@ -129,7 +129,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { ElMessage, ElForm } from 'element-plus';
+import { ElMessage, ElForm, ElLoading } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { achievementApi } from '@/api/achievement';
 import type { Journal, JournalForm, JournalFilter } from '@/api/achievement';
@@ -211,16 +211,57 @@ const getQuartileType = (quartile: string) => {
 };
 
 // 显示期刊历史数据对话框
-const showJournalHistory = (journal: Journal) => {
+const showJournalHistory = async (journal: Journal) => {
   currentJournal.value = journal;
-  // 这里应该从API获取真实的历史数据
-  // 暂时使用模拟数据
-  journalHistory.value = [
-    { year: '2023', jcr_quartile: journal.jcr_quartile || 'Q1', impact_factor: journal.impact_factor || 5.2 },
-    { year: '2022', jcr_quartile: 'Q1', impact_factor: 4.9 },
-    { year: '2021', jcr_quartile: 'Q2', impact_factor: 4.5 }
-  ];
-  historyDialogVisible.value = true;
+  // 显示加载中状态
+  const loading = ElLoading.service({
+    lock: true,
+    text: '加载中...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  });
+  
+  try {
+    // 从API获取真实的历史数据
+    const metrics = await achievementApi.getJournalMetrics(journal.id);
+    
+    // 转换数据格式并按年份降序排序
+    journalHistory.value = metrics
+      .map(metric => ({
+        year: metric.year.toString(),
+        jcr_quartile: metric.jcr_quartile || '-',
+        impact_factor: metric.impact_factor !== null && metric.impact_factor !== undefined ? metric.impact_factor : '-' 
+      }))
+      .sort((a, b) => parseInt(b.year) - parseInt(a.year));
+      
+    // 如果没有历史数据，显示当前期刊的最新数据
+    if (journalHistory.value.length === 0) {
+      journalHistory.value = [
+        { 
+          year: new Date().getFullYear().toString(), 
+          jcr_quartile: journal.jcr_quartile || '-', 
+          impact_factor: journal.impact_factor !== null && journal.impact_factor !== undefined ? journal.impact_factor : '-' 
+        }
+      ];
+    }
+    
+    historyDialogVisible.value = true;
+  } catch (error) {
+    console.error('获取期刊历史数据失败:', error);
+    ElMessage.error('获取期刊历史数据失败');
+    
+    // 出错时显示当前期刊的最新数据作为备选
+    journalHistory.value = [
+      { 
+        year: new Date().getFullYear().toString(), 
+        jcr_quartile: journal.jcr_quartile || '-', 
+        impact_factor: journal.impact_factor !== null && journal.impact_factor !== undefined ? journal.impact_factor : '-' 
+      }
+    ];
+    historyDialogVisible.value = true;
+  } finally {
+    // 关闭加载中状态
+    loading.close();
+  }
 };
 
 // 搜索

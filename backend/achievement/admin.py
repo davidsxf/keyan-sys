@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from .models import Author, Journal, Paper
+from .models import Author, Journal, JournalMetric, Paper
 
 # Register your models here.
 
@@ -232,3 +232,58 @@ class PaperAdmin(admin.ModelAdmin):
         return ', '.join([author.name for author in authors])
 
     corresponding_authors_list.short_description = _('通讯作者')
+
+
+@admin.register(JournalMetric)
+class JournalMetricAdmin(admin.ModelAdmin):
+    """
+    期刊年度指标模型的后台管理配置
+    """
+    # 列表显示的字段
+    list_display = (
+        'journal_link',
+        'year',
+        'jcr_quartile',
+        'impact_factor',
+        'created_at',
+        'updated_at'
+    )
+    # 搜索字段
+    search_fields = ('journal__name', 'year')
+    # 过滤器
+    list_filter = ('year', 'jcr_quartile', 'created_at', 'updated_at')
+    # 排序字段
+    ordering = ('-year', 'journal__name')
+    # 详细页面的字段分组
+    fieldsets = (
+        (
+            _('基本信息'),
+            {
+                'fields': ('journal', 'year', 'jcr_quartile', 'impact_factor')
+            }
+        ),
+        (
+            _('系统信息'),
+            {
+                'fields': ('created_at', 'updated_at'),
+                'classes': ('collapse',),
+            }
+        ),
+    )
+    # 只读字段
+    readonly_fields = ('created_at', 'updated_at')
+    # 添加表单中搜索框
+    autocomplete_fields = ('journal',)
+    # 编辑表单的内联布局
+    formfield_overrides = {
+        # 自定义字段显示
+    }
+
+    def journal_link(self, obj):
+        """显示关联期刊的链接"""
+        if obj.journal:
+            url = reverse('admin:achievement_journal_change', args=[obj.journal.id])
+            return format_html('<a href="{}">{}</a>', url, obj.journal.name)
+        return '-'
+
+    journal_link.short_description = _('期刊')

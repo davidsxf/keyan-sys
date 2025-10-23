@@ -25,9 +25,7 @@ export default {
         showParent: true
       }
     },
-    // 以下为预留路由，对应后端已实现的API功能
-    // 当创建相应的Vue组件时，取消注释并完善路径
-    /*
+
     {
       path: "/achievement/paper",
       name: "Paper",
@@ -37,6 +35,19 @@ export default {
         showParent: true
       }
     },
+    {
+      path: "/achievement/stats",
+      name: "AchievementStats",
+      component: () => import("@/views/achievement/statistics.vue"),
+      meta: {
+        title: "成果统计",
+        showParent: true
+      }
+    }
+    // 以下为预留路由，对应后端已实现的API功能
+    // 当创建相应的Vue组件时，取消注释并完善路径
+    /*
+  
   
     {
       path: "/achievement/stats",

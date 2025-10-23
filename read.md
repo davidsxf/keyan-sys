@@ -35,6 +35,8 @@ pnpm install
 
 pnpm  dev
 
+npm install chart.js
+
 https://pure-admin.cn/
 
 
