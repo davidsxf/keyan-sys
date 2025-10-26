@@ -674,9 +674,25 @@ const loadStats = async () => {
       try {
         // 获取所有员工数据（这里可以根据实际API设计进行调整）
         const allStaffs = await staffApi.getStaffs('', undefined, undefined, undefined, 1, 1000);
-        allStaffs.forEach(staff => {
-          staffMap.value.set(staff.id, staff);
-        });
+        
+        // 确保allStaffs是数组类型，避免forEach方法调用失败
+        if (Array.isArray(allStaffs)) {
+          allStaffs.forEach(staff => {
+            staffMap.value.set(staff.id, staff);
+          });
+        } else if (allStaffs?.items && Array.isArray(allStaffs.items)) {
+          // 处理API返回格式可能为{items: []}的情况
+          allStaffs.items.forEach(staff => {
+            staffMap.value.set(staff.id, staff);
+          });
+        } else if (allStaffs?.data && Array.isArray(allStaffs.data)) {
+          // 处理API返回格式可能为{data: []}的情况
+          allStaffs.data.forEach(staff => {
+            staffMap.value.set(staff.id, staff);
+          });
+        } else {
+          console.warn('Staff data is not in expected format:', allStaffs);
+        }
       } catch (error) {
         console.warn('Failed to load staff details:', error);
       }

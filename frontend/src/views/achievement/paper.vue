@@ -171,6 +171,7 @@
             type="number"
             :min="1900"
             :max="new Date().getFullYear()+1"
+            @change="handleYearChange"
           />
         </el-form-item>
         
@@ -258,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Back, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
@@ -449,8 +450,30 @@ const loadPapers = async () => {
 };
 
 /**
+ * 根据期刊和年份自动填充JCR分区和影响因子
+ * @param journal 期刊对象
+ * @param year 发表年份
+ */
+const autoFillJournalMetrics = (journal: Journal, year: number) => {
+  // 如果期刊有metrics数组，尝试查找对应年份的指标
+  if (journal.metrics && Array.isArray(journal.metrics) && journal.metrics.length > 0) {
+    const yearMetric = journal.metrics.find(metric => metric.year === year);
+    if (yearMetric) {
+      formData.jcr_quartile = yearMetric.jcr_quartile || undefined;
+      formData.impact_factor = yearMetric.impact_factor || undefined;
+      return true;
+    }
+  }
+  
+  // 如果没有找到对应年份的指标，使用默认值
+  formData.jcr_quartile = journal.jcr_quartile || undefined;
+  formData.impact_factor = journal.impact_factor || undefined;
+  return false;
+};
+
+/**
  * 期刊选择变化处理
- * 当用户选择期刊后，显示JCR分区和影响因子输入区域
+ * 当用户选择期刊后，根据发表年份自动读取对应的JCR分区和影响因子
  * @param journalId 选中的期刊ID
  */
 const handleJournalChange = async (journalId?: number) => {
@@ -466,18 +489,29 @@ const handleJournalChange = async (journalId?: number) => {
     const journal = await achievementApi.getJournal(journalId);
     selectedJournal.value = journal;
     
-    // 如果期刊有默认的JCR分区和影响因子，可以预先填充
-    if (journal.jcr_quartile) {
-      formData.jcr_quartile = journal.jcr_quartile;
-    }
-    if (journal.impact_factor !== undefined) {
-      formData.impact_factor = journal.impact_factor;
-    }
+    // 根据发表年份自动填充JCR分区和影响因子
+    autoFillJournalMetrics(journal, formData.publication_year);
   } catch (error) {
     console.error('获取期刊详情失败:', error);
     ElMessage.error('获取期刊详情失败');
   }
 };
+
+/**
+ * 发表年份变化处理
+ * 当发表年份变化时，尝试根据当前选择的期刊自动更新JCR分区和影响因子
+ */
+const handleYearChange = () => {
+  if (selectedJournal.value) {
+    const foundMetric = autoFillJournalMetrics(selectedJournal.value, formData.publication_year);
+    if (foundMetric) {
+      ElMessage.success(`已自动填充${formData.publication_year}年的JCR分区和影响因子`);
+    }
+  }
+};
+
+// 监听发表年份变化
+watch(() => formData.publication_year, handleYearChange);
 
 /**
  * 重置表单数据

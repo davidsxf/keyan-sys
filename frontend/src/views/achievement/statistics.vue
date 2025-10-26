@@ -7,7 +7,7 @@
       
       <!-- 筛选条件 -->
       <div class="card-body bg-gray-50 p-4">
-        <el-form ref="filterForm" :model="filterForm" layout="inline" size="small">
+        <el-form ref="filterFormRef" :model="filterForm" layout="inline" size="small">
           <el-form-item label="统计维度">
             <el-radio-group v-model="filterForm.dimension" @change="handleDimensionChange">
               <el-radio-button label="team">按团队</el-radio-button>
@@ -190,6 +190,7 @@
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import { achievementApi } from '@/api/achievement';
+import { staffApi, teamApi, departmentApi } from '@/api/staff';
 import { Chart, registerables } from 'chart.js';
 
 // 注册Chart.js组件
@@ -204,12 +205,25 @@ const filterForm = reactive({
   person: undefined
 });
 
+// 表单引用
+const filterFormRef = ref<InstanceType<typeof import('element-plus')['ElForm']>>();
+
 // 可用年份选项
 const availableYears = ref<number[]>([]);
 
 // 团队和部门选项
 const teams = ref<Array<{label: string; value: string}>>([]);
 const departments = ref<Array<{label: string; value: string}>>([]);
+
+// 员工数据和作者-团队映射
+const staffs = ref<any[]>([]);
+// 作者-团队映射
+const authorTeamMap = ref<Map<string, string>>(new Map());
+const authorTeamNameMap = ref<Map<string, string>>(new Map());
+
+// 作者-部门映射
+const authorDepartmentMap = ref<Map<string, string>>(new Map());
+const authorDepartmentNameMap = ref<Map<string, string>>(new Map());
 
 // 统计数据
 const statisticsData = ref<any[]>([]);
@@ -235,6 +249,9 @@ const detailPagination = reactive({
   pageSize: 10
 });
 const currentDetailParams = ref<any>(null);
+
+// 是否显示未分类数据
+const showUncategorized = ref(true);
 
 // 计算图表标题
 const chartTitle = computed(() => {
@@ -269,8 +286,73 @@ const initAvailableYears = () => {
 /**
  * 初始化团队和部门数据
  */
-const initTeamsAndDepartments = () => {
-  // 模拟数据，实际项目中应从API获取
+const initTeamsAndDepartments = async () => {
+  try {
+    // 从API获取真实的团队和部门数据
+    const [teamOptions, deptOptions, staffData] = await Promise.all([
+      teamApi.getTeamOptions(),
+      departmentApi.getDepartmentOptions(),
+      staffApi.getStaffs('', undefined, undefined, undefined, 1, 1000)
+    ]);
+    
+    // 格式化团队数据
+    teams.value = teamOptions.map(team => ({
+      label: team.name,
+      value: team.id.toString()
+    }));
+    
+    // 格式化部门数据
+    departments.value = deptOptions.map(dept => ({
+      label: dept.name,
+      value: dept.id.toString()
+    }));
+    
+    // 保存员工数据
+    staffs.value = staffData.data || [];
+    
+    // 构建作者ID到团队的映射
+    buildAuthorTeamMap();
+  } catch (error) {
+    console.error('初始化团队和部门数据失败:', error);
+    // 初始化失败时使用默认模拟数据
+    fallbackToMockData();
+  }
+};
+
+/**
+ * 构建作者ID到团队和部门的映射关系
+ */
+const buildAuthorTeamMap = () => {
+  authorTeamMap.value.clear();
+  authorTeamNameMap.value.clear();
+  
+  // 初始化作者-部门映射
+  authorDepartmentMap.value.clear();
+  authorDepartmentNameMap.value.clear();
+  
+  // 遍历所有员工，建立ID到团队和部门的映射
+  staffs.value.forEach(staff => {
+    if (staff.id) {
+      // 构建团队映射
+      if (staff.team_id) {
+        authorTeamMap.value.set(staff.id.toString(), staff.team_id.toString());
+        authorTeamNameMap.value.set(staff.id.toString(), staff.team_name || '');
+      }
+      
+      // 构建部门映射
+      if (staff.department_id) {
+        authorDepartmentMap.value.set(staff.id.toString(), staff.department_id.toString());
+        authorDepartmentNameMap.value.set(staff.id.toString(), staff.department_name || '');
+      }
+    }
+  });
+};
+
+/**
+ * 当API获取失败时，使用模拟数据作为回退
+ */
+const fallbackToMockData = () => {
+  // 使用模拟数据
   teams.value = [
     { label: 'AI研究团队', value: 'ai_team' },
     { label: '大数据团队', value: 'big_data_team' },
@@ -286,6 +368,30 @@ const initTeamsAndDepartments = () => {
     { label: '信息管理部', value: 'im_department' },
     { label: '网络工程部', value: 'ne_department' }
   ];
+  
+  // 添加模拟员工数据，包含部门信息
+  staffs.value = [
+    { id: 1, team_id: 'ai_team', team_name: 'AI研究团队', department_id: 'cs_department', department_name: '计算机科学部' },
+    { id: 2, team_id: 'big_data_team', team_name: '大数据团队', department_id: 'cs_department', department_name: '计算机科学部' },
+    { id: 3, team_id: 'cloud_team', team_name: '云计算团队', department_id: 'im_department', department_name: '信息管理部' },
+    { id: 4, team_id: 'iot_team', team_name: '物联网团队', department_id: 'ee_department', department_name: '电子工程部' },
+    { id: 5, team_id: 'security_team', team_name: '安全研究团队', department_id: 'ne_department', department_name: '网络工程部' }
+  ];
+  
+  // 重新构建作者-团队和作者-部门映射
+  buildAuthorTeamMap();
+  
+  // 添加模拟的员工数据并构建作者-团队映射
+  staffs.value = [
+    { id: 1, name: '张三', team_id: 'ai_team', team_name: 'AI研究团队' },
+    { id: 2, name: '李四', team_id: 'big_data_team', team_name: '大数据团队' },
+    { id: 3, name: '王五', team_id: 'cloud_team', team_name: '云计算团队' },
+    { id: 4, name: '赵六', team_id: 'iot_team', team_name: '物联网团队' },
+    { id: 5, name: '钱七', team_id: 'security_team', team_name: '安全研究团队' }
+  ];
+  
+  // 重新构建作者-团队映射
+  buildAuthorTeamMap();
 };
 
 /**
@@ -306,6 +412,7 @@ const fetchStatisticsData = async () => {
   try {
     // 获取所有论文数据
     const papers = await achievementApi.getPapers();
+    console.log('获取到的原始论文数量:', papers.length);
     
     // 根据当前筛选条件处理数据
     let filteredPapers = papers;
@@ -313,6 +420,9 @@ const fetchStatisticsData = async () => {
     // 如果按年份筛选
     if (filterForm.dimension !== 'year' && filterForm.year) {
       filteredPapers = filteredPapers.filter(paper => paper.publication_year === filterForm.year);
+      console.log(`按年份${filterForm.year}筛选后的论文数量:`, filteredPapers.length);
+    } else {
+      console.log('未按年份筛选，使用全部论文');
     }
     
     // 生成统计数据
@@ -347,64 +457,213 @@ const generateStatisticsData = (papers: any[]) => {
   let highQuartileCount = 0;
   
   // 根据维度分组处理数据
-  switch (filterForm.dimension) {
-    case 'team':
-      // 按团队统计（这里需要从作者关联的staff信息获取团队信息）
-      // 由于API限制，暂时使用模拟团队数据
-      data = teams.value
-        .filter(team => !filterForm.team || team.value === filterForm.team)
-        .map(team => {
-          // 模拟按团队筛选论文
-          const teamPapers = papers.filter(() => Math.random() > 0.3); // 模拟30%的概率不属于该团队
-          return processGroupPapers(team.label, team.value, teamPapers);
-        });
-      break;
-      
-    case 'department':
-      // 按部门统计（这里需要从作者关联的staff信息获取部门信息）
-      // 由于API限制，暂时使用模拟部门数据
-      data = departments.value
-        .filter(dept => !filterForm.department || dept.value === filterForm.department)
-        .map(dept => {
-          // 模拟按部门筛选论文
-          const deptPapers = papers.filter(() => Math.random() > 0.2); // 模拟20%的概率不属于该部门
-          return processGroupPapers(dept.label, dept.value, deptPapers);
-        });
-      break;
-      
-    case 'person':
-      // 按作者统计
-      const authorMap = new Map<string, any[]>();
-      
-      // 按作者分组
-      papers.forEach(paper => {
-        // 获取所有作者（第一作者和通讯作者）
-        const allAuthors = [...paper.first_authors, ...paper.corresponding_authors];
-        
-        allAuthors.forEach(author => {
-          const authorId = author.id.toString();
-          if (!authorMap.has(authorId)) {
-            authorMap.set(authorId, []);
+    switch (filterForm.dimension) {
+      case 'team': {
+          // 直接使用简单数组存储所有论文，确保不会有统计遗漏
+          const teamStats = [];
+          
+          // 调试信息
+          console.log(`团队统计 - 原始论文总数: ${papers.length}`);
+          
+          if (filterForm.team) {
+            // 如果有团队筛选条件，按团队筛选论文
+            const team = teams.value.find(t => t.value === filterForm.team);
+            if (team) {
+              // 筛选出属于指定团队的论文
+              const teamValue = String(filterForm.team);
+              const filteredPapers = papers.filter(paper => {
+                // 只使用第一作者进行统计
+                const paperAuthors = paper.first_authors;
+                return paperAuthors.some(author => {
+                  if (author.staff_id) {
+                    const authorTeamId = authorTeamMap.value.get(author.staff_id.toString());
+                    // 确保类型一致性并进行比较
+                    return String(authorTeamId) === teamValue;
+                  }
+                  return false;
+                });
+              });
+              
+              console.log(`团队筛选: ${team.label}, 筛选后论文数量: ${filteredPapers.length}`);
+              teamStats.push(processGroupPapers(team.label, filterForm.team, filteredPapers));
+            }
+          } else {
+            // 没有筛选条件时，为每个团队生成统计数据，但避免重复统计
+            console.log('无团队筛选条件，为每个团队生成统计数据，避免重复统计');
+            
+            // 用于记录已分配的论文ID，避免重复统计
+            const assignedPaperIds = new Set<number>();
+            
+            // 为每个团队生成统计数据
+            teams.value.forEach(team => {
+              // 筛选出属于该团队的论文，且未被分配给其他团队
+              const filteredPapers = papers.filter(paper => {
+                // 如果论文已经被分配，跳过
+                if (assignedPaperIds.has(paper.id)) return false;
+                
+                // 只使用第一作者进行统计
+                const paperAuthors = paper.first_authors;
+                const teamValue = String(team.value);
+                const belongsToTeam = paperAuthors.some(author => {
+                  if (author.staff_id) {
+                    const authorTeamId = authorTeamMap.value.get(author.staff_id.toString());
+                    // 确保类型一致性并进行比较
+                    return String(authorTeamId) === teamValue;
+                  }
+                  return false;
+                });
+                
+                // 如果属于该团队，标记为已分配
+                if (belongsToTeam) {
+                  assignedPaperIds.add(paper.id);
+                }
+                
+                return belongsToTeam;
+              });
+              
+              // 只添加有论文的团队
+              if (filteredPapers.length > 0) {
+                teamStats.push(processGroupPapers(team.label, team.value, filteredPapers));
+                console.log(`团队: ${team.label}, 论文数量: ${filteredPapers.length}`);
+              }
+            });
+            
+            // 计算未被任何团队分配的论文
+            const unassignedPapers = papers.filter(paper => !assignedPaperIds.has(paper.id));
+            if (unassignedPapers.length > 0) {
+              console.log(`未分配论文数量: ${unassignedPapers.length}`);
+              teamStats.push(processGroupPapers('未分类', 'uncategorized', unassignedPapers));
+            }
+            
+            // 如果没有团队有论文且没有未分类论文，仍然显示全部论文统计
+            if (teamStats.length === 0) {
+              teamStats.push(processGroupPapers('全部论文', 'all', papers));
+            }
           }
-          authorMap.get(authorId)!.push(paper);
-        });
-      });
-      
-      // 转换为数组并处理
-      data = Array.from(authorMap.entries()).map(([authorId, authorPapers]) => {
-        const firstPaper = authorPapers[0];
-        const author = firstPaper.first_authors.find((a: any) => a.id.toString() === authorId) || 
-                       firstPaper.corresponding_authors.find((a: any) => a.id.toString() === authorId);
-        const authorName = author ? author.name : `作者${authorId}`;
+          
+          // 直接使用统计结果
+          data = teamStats;
+        }        break;
         
-        return processGroupPapers(authorName, authorId, authorPapers);
-      });
+        case 'department': {
+      // 按部门统计
+      const deptStats = [];
       
-      // 按成果数量排序
-      data.sort((a, b) => b.count - a.count);
+      // 调试信息
+      console.log(`部门统计 - 原始论文总数: ${papers.length}`);
+      
+      if (filterForm.department) {
+        // 如果有部门筛选条件，按部门筛选论文
+        const department = departments.value.find(d => d.value === filterForm.department);
+        if (department) {
+          // 筛选出属于指定部门的论文
+          const deptValue = String(filterForm.department);
+          const filteredPapers = papers.filter(paper => {
+            // 只使用第一作者进行统计
+            const paperAuthors = paper.first_authors;
+            return paperAuthors.some(author => {
+              if (author.staff_id) {
+                const authorDeptId = authorDepartmentMap.value.get(author.staff_id.toString());
+                // 确保类型一致性并进行比较
+                return String(authorDeptId) === deptValue;
+              }
+              return false;
+            });
+          });
+          
+          console.log(`部门筛选: ${department.label}, 筛选后论文数量: ${filteredPapers.length}`);
+          deptStats.push(processGroupPapers(department.label, filterForm.department, filteredPapers));
+        }
+      } else {
+        // 没有筛选条件时，为每个部门生成统计数据，避免重复统计
+        console.log('无部门筛选条件，为每个部门生成统计数据，避免重复统计');
+        
+        // 用于记录已分配的论文ID，避免重复统计
+        const assignedPaperIds = new Set<number>();
+        
+        // 为每个部门生成统计数据
+        departments.value.forEach(department => {
+          // 筛选出属于该部门的论文，且未被分配给其他部门
+          const filteredPapers = papers.filter(paper => {
+            // 如果论文已经被分配，跳过
+            if (assignedPaperIds.has(paper.id)) return false;
+            
+            // 只使用第一作者进行统计
+            const paperAuthors = paper.first_authors;
+            const deptValue = String(department.value);
+            const belongsToDepartment = paperAuthors.some(author => {
+              if (author.staff_id) {
+                const authorDeptId = authorDepartmentMap.value.get(author.staff_id.toString());
+                // 确保类型一致性并进行比较
+                return String(authorDeptId) === deptValue;
+              }
+              return false;
+            });
+            
+            // 如果属于该部门，标记为已分配
+            if (belongsToDepartment) {
+              assignedPaperIds.add(paper.id);
+            }
+            
+            return belongsToDepartment;
+          });
+          
+          // 只添加有论文的部门
+          if (filteredPapers.length > 0) {
+            deptStats.push(processGroupPapers(department.label, department.value, filteredPapers));
+            console.log(`部门: ${department.label}, 论文数量: ${filteredPapers.length}`);
+          }
+        });
+        
+        // 计算未被任何部门分配的论文
+        const unassignedPapers = papers.filter(paper => !assignedPaperIds.has(paper.id));
+        if (unassignedPapers.length > 0) {
+          console.log(`未分配论文数量: ${unassignedPapers.length}`);
+          deptStats.push(processGroupPapers('未分类', 'uncategorized', unassignedPapers));
+        }
+        
+        // 如果没有部门有论文且没有未分类论文，仍然显示全部论文统计
+        if (deptStats.length === 0) {
+          deptStats.push(processGroupPapers('全部论文', 'all', papers));
+        }
+      }
+      
+      // 使用统计结果
+      data = deptStats;
       break;
+    }
       
-    case 'year':
+    case 'person': {
+        // 按作者统计
+        const authorMap = new Map<string, any[]>();
+        
+        // 按作者分组 - 只使用第一作者
+        papers.forEach(paper => {
+          paper.first_authors.forEach(author => {
+            const authorId = author.id.toString();
+            if (!authorMap.has(authorId)) {
+              authorMap.set(authorId, []);
+            }
+            authorMap.get(authorId)!.push(paper);
+          });
+        });
+      
+        // 转换为数组并处理
+        data = Array.from(authorMap.entries()).map(([authorId, authorPapers]) => {
+          const firstPaper = authorPapers[0];
+          const author = firstPaper.first_authors.find((a: any) => a.id.toString() === authorId) || 
+                         firstPaper.corresponding_authors.find((a: any) => a.id.toString() === authorId);
+          const authorName = author ? author.name : `作者${authorId}`;
+          
+          return processGroupPapers(authorName, authorId, authorPapers);
+        });
+      
+        // 按成果数量排序
+        data.sort((a, b) => b.count - a.count);
+        break;
+      }
+      
+    case 'year': {
       // 按年份统计
       const yearMap = new Map<number, any[]>();
       
@@ -425,6 +684,7 @@ const generateStatisticsData = (papers: any[]) => {
       // 按年份降序排序
       data.sort((a, b) => b.value - a.value);
       break;
+    }
   }
   
   // 计算总体高影响因子和高分区论文数量
@@ -447,6 +707,7 @@ const generateStatisticsData = (papers: any[]) => {
  * @returns 统计结果
  */
 const processGroupPapers = (name: string, value: any, papers: any[]) => {
+  console.log(`处理分组: ${name}, 论文数量: ${papers.length}`);
   const count = papers.length;
   let q1Count = 0;
   let q2Count = 0;
@@ -672,16 +933,128 @@ const fetchDetailData = async () => {
     
     // 根据维度进一步筛选
     switch (currentDetailParams.value.dimension) {
-      case 'team':
-      case 'department':
-        // 由于API限制，暂时使用模拟筛选
-        filteredPapers = filteredPapers.filter(() => Math.random() > 0.5);
-        break;
+        case 'team':
+          // 使用与统计时相同的团队筛选逻辑
+          if (currentDetailParams.value.targetValue === 'all') {
+            // 如果是"全部论文"，不做额外筛选
+            console.log('查看全部论文详情，原始数量:', filteredPapers.length);
+          } else {
+            console.log(`处理团队详情查询 - 团队名称: ${currentDetailParams.value.targetName}, 团队值: ${currentDetailParams.value.targetValue}`);
+            
+            // 筛选出属于指定团队的论文，并应用与统计时相同的去重逻辑
+            const teamValue = String(currentDetailParams.value.targetValue);
+            
+            // 创建已分配论文ID集合，模拟统计时的去重逻辑
+            const assignedPaperIds = new Set<number>();
+            
+            // 首先，模拟团队排序，将非目标团队的论文按顺序分配
+            teams.value.forEach(team => {
+              // 跳过目标团队，只处理其他团队
+              if (String(team.value) === teamValue) return;
+              
+              // 为非目标团队分配论文
+              papers.forEach(paper => {
+                // 如果论文未被分配且属于当前团队
+                if (!assignedPaperIds.has(paper.id)) {
+                  // 只使用第一作者进行统计
+                  const paperAuthors = paper.first_authors;
+                  const belongsToTeam = paperAuthors.some(author => {
+                    if (author.staff_id) {
+                      const authorTeamId = authorTeamMap.value.get(author.staff_id.toString());
+                      return String(authorTeamId) === String(team.value);
+                    }
+                    return false;
+                  });
+                  
+                  if (belongsToTeam) {
+                    assignedPaperIds.add(paper.id);
+                  }
+                }
+              });
+            });
+            
+            // 现在筛选目标团队的论文，只包含未被其他团队分配的论文
+            filteredPapers = papers.filter(paper => {
+              // 如果论文已被其他团队分配，则不属于当前团队
+              if (assignedPaperIds.has(paper.id)) return false;
+              
+              // 检查论文是否属于目标团队 - 只使用第一作者
+              const paperAuthors = paper.first_authors;
+              return paperAuthors.some(author => {
+                if (author.staff_id) {
+                  const authorTeamId = authorTeamMap.value.get(author.staff_id.toString());
+                  return String(authorTeamId) === teamValue;
+                }
+                return false;
+              });
+            });
+            
+            console.log(`团队详情查询结果 - 团队名称: ${currentDetailParams.value.targetName}, 论文数量: ${filteredPapers.length}`);
+          }
+          break;
+        case 'department':
+          // 按部门ID筛选
+          if (currentDetailParams.value.targetValue === 'all') {
+            // 如果是"全部论文"，不做额外筛选
+            console.log('查看全部论文详情，原始数量:', filteredPapers.length);
+          } else {
+            console.log(`处理部门详情查询 - 部门名称: ${currentDetailParams.value.targetName}, 部门值: ${currentDetailParams.value.targetValue}`);
+            
+            // 筛选出属于指定部门的论文，并应用与统计时相同的去重逻辑
+            const deptValue = String(currentDetailParams.value.targetValue);
+            
+            // 创建已分配论文ID集合，模拟统计时的去重逻辑
+            const assignedPaperIds = new Set<number>();
+            
+            // 首先，模拟部门排序，将非目标部门的论文按顺序分配
+            departments.value.forEach(department => {
+              // 跳过目标部门，只处理其他部门
+              if (String(department.value) === deptValue) return;
+              
+              // 为非目标部门分配论文
+              papers.forEach(paper => {
+                // 如果论文未被分配且属于当前部门
+                if (!assignedPaperIds.has(paper.id)) {
+                  // 只使用第一作者进行统计
+                  const paperAuthors = paper.first_authors;
+                  const belongsToDepartment = paperAuthors.some(author => {
+                    if (author.staff_id) {
+                      const authorDeptId = authorDepartmentMap.value.get(author.staff_id.toString());
+                      return String(authorDeptId) === String(department.value);
+                    }
+                    return false;
+                  });
+                  
+                  if (belongsToDepartment) {
+                    assignedPaperIds.add(paper.id);
+                  }
+                }
+              });
+            });
+            
+            // 现在筛选目标部门的论文，只包含未被其他部门分配的论文
+            filteredPapers = papers.filter(paper => {
+              // 如果论文已被其他部门分配，则不属于当前部门
+              if (assignedPaperIds.has(paper.id)) return false;
+              
+              // 检查论文是否属于目标部门 - 只使用第一作者
+              const paperAuthors = paper.first_authors;
+              return paperAuthors.some(author => {
+                if (author.staff_id) {
+                  const authorDeptId = authorDepartmentMap.value.get(author.staff_id.toString());
+                  return String(authorDeptId) === deptValue;
+                }
+                return false;
+              });
+            });
+            
+            console.log(`部门详情查询结果 - 部门名称: ${currentDetailParams.value.targetName}, 论文数量: ${filteredPapers.length}`);
+          }
+          break;
       case 'person':
-        // 按作者ID筛选
+        // 按作者ID筛选 - 只使用第一作者
         filteredPapers = filteredPapers.filter(paper => {
-          const allAuthors = [...paper.first_authors, ...paper.corresponding_authors];
-          return allAuthors.some(author => author.id.toString() === currentDetailParams.value.targetValue.toString());
+          return paper.first_authors.some(author => author.id.toString() === currentDetailParams.value.targetValue.toString());
         });
         break;
       case 'year':
@@ -800,9 +1173,9 @@ watch(detailDialogVisible, (newVal) => {
 });
 
 // 组件挂载时初始化
-onMounted(() => {
+onMounted(async () => {
   initAvailableYears();
-  initTeamsAndDepartments();
+  await initTeamsAndDepartments();
   fetchStatisticsData();
 });
 </script>
