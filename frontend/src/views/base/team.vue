@@ -46,7 +46,13 @@
       <!-- 团队表格 -->
       <el-table :data="teams" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="团队名称" />
+        <el-table-column prop="name" label="团队名称">
+          <template #default="{ row }">
+            <el-link type="primary" :underline="false" @click="viewTeamStats(row.id)">
+              {{ row.name }}
+            </el-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="description" label="描述" />
         <el-table-column prop="research_field" label="研究领域" />
         <el-table-column prop="department_name" label="所属部门" />
@@ -55,7 +61,7 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-button size="small" @click="editTeam(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="deleteTeam(row.id)">
@@ -129,6 +135,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification, type FormInstance, type FormRules } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { teamApi, departmentApi } from '@/api/team'
@@ -136,6 +143,7 @@ import type { Team, TeamForm, DepartmentOption } from '@/api/team'
 
 
 // 数据状态
+const router = useRouter()
 const teams = ref<Team[]>([])
 const departments = ref<DepartmentOption[]>([])
 const loading = ref(false)
@@ -280,6 +288,14 @@ const deleteTeam = async (id: number) => {
       ElMessage.error(error.message || '删除失败')
     }
   }
+}
+
+/**
+ * 查看团队统计信息
+ * @param id 团队ID
+ */
+const viewTeamStats = (id: number) => {
+  router.push(`/base/teamStats/${id}`);
 }
 
 

@@ -246,12 +246,23 @@ export const achievementApi = {
 
   // 论文相关API
   // 获取论文列表
-  getPapers: async (): Promise<Paper[]> => {
+  getPapers: async (params?: { team_id?: number; title?: string; author_id?: number; journal_id?: number; publication_year?: number; min_publication_year?: number; max_publication_year?: number; skip?: number; limit?: number }): Promise<Paper[]> => {
     try {
-      const response = await http.get(`${API_BASE}/papers/`);
+      const response = await http.get(`${API_BASE}/papers/`, { params });
       return response;
     } catch (error) {
       console.error('获取论文列表失败:', error);
+      throw error;
+    }
+  },
+  
+  // 获取团队成员作为第一作者的论文列表
+  getTeamPapers: async (teamId: number, params?: { publication_year?: number; min_publication_year?: number; max_publication_year?: number; skip?: number; limit?: number }): Promise<Paper[]> => {
+    try {
+      const response = await http.get(`${API_BASE}/teams/${teamId}/papers/`, { params });
+      return response;
+    } catch (error) {
+      console.error(`获取团队 ${teamId} 的论文列表失败:`, error);
       throw error;
     }
   },

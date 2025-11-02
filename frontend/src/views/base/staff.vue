@@ -99,8 +99,9 @@
             <span v-else>否</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180">
+        <el-table-column label="操作" width="240">
           <template #default="{ row }">
+            <el-button size="small" @click="viewDetails(row)">查看详情</el-button>
             <el-button size="small" @click="editStaff(row)">编辑</el-button>
             <el-button size="small" type="danger" @click="deleteStaff(row.id)">
               删除
@@ -232,6 +233,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification, type FormInstance, type FormRules } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { staffApi, departmentApi, teamApi, StaffStatus } from '@/api/staff'
@@ -288,6 +290,9 @@ const statusOptions = [
   { value: StaffStatus.OFF_DUTY, label: '离职' },
   { value: StaffStatus.RETIRE, label: '退休' }
 ]
+
+// 路由
+const router = useRouter()
 
 // 计算属性
 const dialogTitle = computed(() => isEditing.value ? '编辑员工' : '新增员工')
@@ -421,6 +426,15 @@ const deleteStaff = async (id: number) => {
   }
 }
 
+// 查看员工详情
+const viewDetails = (staff: Staff) => {
+  // 使用命名路由导航，避免路径字符串拼接可能带来的问题
+  router.push({
+    name: 'StaffDetails',
+    params: { id: staff.id }
+  })
+}
+
 const getStatusTagType = (status: string) => {
   switch (status) {
     case StaffStatus.ON_DUTY: return 'success'
@@ -430,9 +444,24 @@ const getStatusTagType = (status: string) => {
   }
 }
 
-const formatDate = (dateString?: string) => {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleDateString()
+const formatDate = (dateString?: string | null) => {
+  // 添加更严格的类型和有效性检查
+  if (!dateString || typeof dateString !== 'string' || dateString.trim() === '') {
+    return ''
+  }
+  
+  try {
+    // 验证日期字符串格式，避免无效日期导致的问题
+    const date = new Date(dateString)
+    // 检查是否是有效日期
+    if (isNaN(date.getTime())) {
+      return ''
+    }
+    return date.toLocaleDateString()
+  } catch (error) {
+    // 捕获任何可能的日期处理错误
+    return ''
+  }
 }
 
 // 将字符串状态转换为枚举类型

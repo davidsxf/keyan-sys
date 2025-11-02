@@ -44,6 +44,24 @@ export default {
       }
     },
     {
+      path: "/base/teamStats/:id?",
+      name: "TeamStats",
+      component: () => import("@/views/base/teamStats.vue"),
+      meta: {
+        title: "团队统计",
+        showParent: false
+      }
+    },
+    {
+      path: "/base/staff/:id?",
+      name: "StaffDetails",
+      component: () => import("@/views/base/staffDetails.vue"),
+      meta: {
+        title: "个人信息与统计",
+        showParent: false
+      }
+    },
+    {
       path: "/base/staff",
       name: "Staff",
       component: () => import("@/views/base/staff.vue"),
@@ -52,6 +70,7 @@ export default {
         showParent: true
       }
     },
+  
 
     // {
     //   path: "/base/effort",

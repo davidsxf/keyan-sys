@@ -192,6 +192,45 @@ def delete_team(request, team_id: int):
     return 204, None
 
 
+@router.get("/teams/{team_id}/members/", response=dict)
+def get_team_members(request, team_id: int):
+    """
+    获取指定团队的所有成员
+    支持搜索和分页
+    """
+    # 验证团队是否存在
+    team = get_object_or_404(Team, id=team_id)
+    
+    # 获取请求参数
+    search = request.GET.get('search', '')
+    skip = int(request.GET.get('skip', 0))
+    limit = int(request.GET.get('limit', 100))
+    
+    # 查询该团队的所有成员
+    members_query = Staff.objects.filter(team=team)
+    
+    # 搜索功能
+    if search:
+        members_query = members_query.filter(
+            Q(name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(position__icontains=search)
+        )
+    
+    # 计算总条数
+    total = members_query.count()
+    
+    # 分页
+    members = members_query[skip:skip + limit]
+    
+    # 返回结果
+    return {
+        'total': total,
+        'data': [prepare_staff_response(member) for member in members]
+    }
+
+
 def prepare_team_response(team):
     """准备团队响应数据"""
     return {

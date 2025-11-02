@@ -261,6 +261,16 @@ def _paper_to_out(paper: Paper) -> PaperOut:
     paper_data.first_authors = [_author_to_out(author) for author in paper.first_authors.all()]
     # 处理通讯作者
     paper_data.corresponding_authors = [_author_to_out(author) for author in paper.corresponding_authors.all()]
+    
+    # 添加leader_name字段，显示第一作者姓名
+    # 获取第一个第一作者
+    first_author = paper.first_authors.first()
+    if first_author:
+        # 优先使用员工姓名，如果没有则使用作者姓名
+        paper_data.leader_name = first_author.staff.name if first_author.staff else first_author.name
+    else:
+        paper_data.leader_name = ""
+    
     return paper_data
 
 @router.post("/papers/", response=PaperOut)
@@ -320,6 +330,23 @@ def list_papers(request, filters: PaperFilter = None, skip: int = 0, limit: int 
             papers = papers.filter(publication_year__gte=filters.min_publication_year)
         if filters.max_publication_year is not None:
             papers = papers.filter(publication_year__lte=filters.max_publication_year)
+        
+        # 根据团队ID过滤 - 获取该团队成员作为第一作者的论文
+        if filters.team_id:
+            # 导入Team模型
+            from users.models import Team
+            
+            # 获取指定的团队
+            team = get_object_or_404(Team, id=filters.team_id)
+            
+            # 获取团队的所有成员
+            team_members = team.members.all()
+            
+            # 获取与团队成员关联的所有作者档案
+            team_authors = Author.objects.filter(staff__in=team_members)
+            
+            # 过滤出团队成员作为第一作者的论文
+            papers = papers.filter(first_authors__in=team_authors).distinct()
     
     # 分页
     papers = papers[skip:skip + limit]
@@ -378,3 +405,60 @@ def delete_paper(request, paper_id: int):
     paper = get_object_or_404(Paper, id=paper_id)
     paper.delete()
     return 204, None
+
+
+@router.get("/teams/{team_id}/papers/", response=List[PaperOut])
+def get_team_first_author_papers(
+    request, 
+    team_id: int, 
+    publication_year: Optional[int] = None, 
+    min_publication_year: Optional[int] = None, 
+    max_publication_year: Optional[int] = None,
+    skip: int = 0, 
+    limit: int = 100
+):
+    """
+    获取指定团队成员作为第一作者的论文列表
+    
+    Args:
+        team_id: 团队ID
+        publication_year: 指定发表年份（可选）
+        min_publication_year: 最小发表年份（可选）
+        max_publication_year: 最大发表年份（可选）
+        skip: 跳过的记录数（分页）
+        limit: 返回的最大记录数（分页）
+    
+    Returns:
+        符合条件的论文列表
+    """
+    # 导入Team模型
+    from users.models import Team
+    
+    # 获取指定的团队
+    team = get_object_or_404(Team, id=team_id)
+    
+    # 获取团队的所有成员
+    team_members = team.members.all()
+    
+    # 获取与团队成员关联的所有作者档案
+    team_authors = Author.objects.filter(staff__in=team_members)
+    
+    # 构建查询 - 团队成员作为第一作者的论文
+    papers = Paper.objects.filter(first_authors__in=team_authors).distinct()
+    
+    # 应用年份过滤条件
+    if publication_year:
+        papers = papers.filter(publication_year=publication_year)
+    if min_publication_year is not None:
+        papers = papers.filter(publication_year__gte=min_publication_year)
+    if max_publication_year is not None:
+        papers = papers.filter(publication_year__lte=max_publication_year)
+    
+    # 按发表年份降序排列
+    papers = papers.order_by("-publication_year", "title")
+    
+    # 分页
+    papers = papers[skip:skip + limit]
+    
+    # 转换为输出模型
+    return [_paper_to_out(paper) for paper in papers]

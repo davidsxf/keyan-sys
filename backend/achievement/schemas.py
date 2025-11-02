@@ -91,6 +91,7 @@ class PaperOut(Schema):
     abstract: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    leader_name: str = ""  # 第一作者姓名，用于前端展示
 
 
 class AuthorFilter(Schema):
@@ -118,6 +119,7 @@ class PaperFilter(Schema):
     publication_year: Optional[int] = None
     min_publication_year: Optional[int] = None
     max_publication_year: Optional[int] = None
+    team_id: Optional[int] = None  # 团队ID，用于过滤特定团队成员作为第一作者的论文
 
 
 
