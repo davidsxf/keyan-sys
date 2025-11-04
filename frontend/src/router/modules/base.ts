@@ -49,7 +49,8 @@ export default {
       component: () => import("@/views/base/teamStats.vue"),
       meta: {
         title: "团队统计",
-        showParent: false
+        showParent: true,
+        showLink: false
       }
     },
     {
@@ -58,7 +59,8 @@ export default {
       component: () => import("@/views/base/staffDetails.vue"),
       meta: {
         title: "个人信息与统计",
-        showParent: false
+        showParent: true,
+        showLink: false
       }
     },
     {

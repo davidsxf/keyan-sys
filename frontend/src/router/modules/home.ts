@@ -5,7 +5,7 @@ export default {
   path: "/",
   name: "Home",
   component: Layout,
-  redirect: "/welcome",
+  redirect: "/project/stats",
   meta: {
     icon: "ep/home-filled",
     title: "首页",
@@ -13,11 +13,11 @@ export default {
   },
   children: [
     {
-      path: "/welcome",
-      name: "Welcome",
-      component: () => import("@/views/welcome/index.vue"),
+      path: "/project/stats",
+      name: "ProjectStats",
+      component: () => import("@/views/project/stats.vue"),
       meta: {
-        title: "首页",
+        title: "项目统计",
         showLink: VITE_HIDE_HOME === "true" ? false : true
       }
     }

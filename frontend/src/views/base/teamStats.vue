@@ -99,7 +99,13 @@
             </div>
           </template>
           <el-table v-else :data="ledProjects" border>
-            <el-table-column prop="title" label="项目名称" />
+            <el-table-column prop="title" label="项目名称">
+              <template #default="{ row }">
+                <router-link :to="`/project/projectDetail?projectld=${row.id}`" class="project-link">
+                  {{ row.title }}
+                </router-link>
+              </template>
+            </el-table-column>
             <el-table-column prop="category_name" label="项目类别" />
             <el-table-column prop="leader_name" label="项目负责人" />
             <el-table-column prop="start_date" label="开始日期" width="120">
@@ -514,6 +520,16 @@ onMounted(() => {
 <style scoped>
 .team-stats {
   padding: 20px;
+}
+
+.project-link {
+  color: #1890ff;
+  text-decoration: none;
+}
+
+.project-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
 }
 
 .card-header {

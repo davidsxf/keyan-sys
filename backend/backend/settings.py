@@ -64,14 +64,43 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# CORS配置 - 在开发环境中允许所有源以避免配置问题
+CORS_ALLOW_ALL_ORIGINS = True
+
+# 注释掉具体源列表以避免冲突
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
     'http://172.21.25.141:8000',
+    'http://localhost:8848',    # 前端开发服务器端口
+    'http://127.0.0.1:8848',    # 前端开发服务器端口
 ]
-# 添加CORS配置
-CORS_ALLOW_ALL_ORIGINS = True  # 开发环境可以这样设置，生产环境应限制特定域名
-CORS_ALLOW_CREDENTIALS = True
+
+# 允许凭证
+# CORS_ALLOW_CREDENTIALS = True
+
+# 允许的HTTP方法
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# 允许的请求头
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 ROOT_URLCONF = 'backend.urls'
 
