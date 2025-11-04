@@ -46,6 +46,11 @@ const {
       <LaySidebarFullScreen id="full-screen" />
       <!-- 消息通知 -->
       <!-- <LayNotice id="header-notice" /> -->
+      <!-- 后台管理 -->
+      <a href="http://127.0.0.1:8000/admin" target="_blank" class="navbar-bg-hover select-none flex items-center">
+        <IconifyIconOffline icon="ri:admin-line" style="margin: 5px" />
+        后台管理
+      </a>
       <!-- 退出登录 -->
       <el-dropdown trigger="click">
         <span class="el-dropdown-link navbar-bg-hover select-none">

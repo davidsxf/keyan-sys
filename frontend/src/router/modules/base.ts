@@ -3,7 +3,8 @@ export default {
   path: "/base",
   meta: {
     title: "基本信息",
-    icon: "ep/menu"    
+    icon: "ep/menu",
+    rank: 1
   },
   children: [
     {
@@ -41,6 +42,16 @@ export default {
       meta: {
         title: "团队",
         showParent: true
+      }
+    },
+    {
+      path: "/base/departmentStats/:id?",
+      name: "DepartmentStats",
+      component: () => import("@/views/base/departmentStats.vue"),
+      meta: {
+        title: "部门统计",
+        showParent: true,
+        showLink: false
       }
     },
     {

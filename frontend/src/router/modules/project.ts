@@ -3,8 +3,8 @@ export default {
   path: "/project",
   meta: {
     title: "项目",
-    icon: "ep/project",
-    showParent: true
+    icon: "ep:lollipop",
+    rank: 2
   },
   children: [
     {

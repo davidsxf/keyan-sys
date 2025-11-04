@@ -90,6 +90,45 @@ def delete_department(request, dept_id: int):
     return 204, None
 
 
+@router.get("/departments/{dept_id}/members/", response=dict)
+def get_department_members(request, dept_id: int):
+    """
+    获取指定部门的所有成员
+    支持搜索和分页
+    """
+    # 验证部门是否存在
+    department = get_object_or_404(Department, id=dept_id)
+    
+    # 获取请求参数
+    search = request.GET.get('search', '')
+    skip = int(request.GET.get('skip', 0))
+    limit = int(request.GET.get('limit', 100))
+    
+    # 查询该部门的所有成员
+    members_query = Staff.objects.filter(department=department)
+    
+    # 搜索功能
+    if search:
+        members_query = members_query.filter(
+            Q(name__icontains=search) |
+            Q(email__icontains=search) |
+            Q(phone__icontains=search) |
+            Q(position__icontains=search)
+        )
+    
+    # 计算总条数
+    total = members_query.count()
+    
+    # 分页
+    members = members_query[skip:skip + limit]
+    
+    # 返回结果
+    return {
+        'total': total,
+        'data': [prepare_staff_response(member) for member in members]
+    }
+
+
 
 # 团队相关接口 teams
 @router.post("/teams/", response={201: TeamOut})

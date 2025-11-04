@@ -4,6 +4,7 @@ export default {
   meta: {
     title: "成果管理",
     icon: "ep:document-copy",
+    rank: 3,
     showParent: true
   },
   children: [

@@ -17,7 +17,13 @@
         default-expand-all
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
       >
-        <el-table-column prop="name" label="部门名称" />
+        <el-table-column prop="name" label="部门名称">
+          <template #default="{ row }">
+            <router-link :to="`/base/departmentStats/${row.id}`" class="department-link">
+              {{ row.name }}
+            </router-link>
+          </template>
+        </el-table-column>
         <el-table-column prop="description" label="描述" />
         <el-table-column label="操作" width="240">
           <template #default="{ row }">
@@ -218,10 +224,20 @@ onMounted(() => {
   align-items: center;
 }
 
+/* 部门名称链接样式 */
+.department-link {
+  color: #409eff;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.department-link:hover {
+  color: #66b1ff;
+  text-decoration: underline;
+}
+
 /* 确保操作列有足够宽度 */
 .el-table .el-table__column--operation {
   width: 240px !important;
 }
-
-
 </style>
