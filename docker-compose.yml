@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  db:
+    image: postgres:14  # 使用非alpine版本，更稳定
+    container_name: keyan-db
+    environment:
+      POSTGRES_DB: keyan_db
+      POSTGRES_USER: keyan_user
+      POSTGRES_PASSWORD: keyan_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keyan_user -d keyan_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: keyan-backend
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://keyan_user:keyan_password@db:5432/keyan_db
+      - SECRET_KEY=your_secret_key_here
+    command: >
+      sh -c "python manage.py migrate && \
+             python manage.py runserver 0.0.0.0:8000"
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: keyan-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

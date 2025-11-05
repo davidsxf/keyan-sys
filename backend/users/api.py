@@ -90,6 +90,8 @@ def delete_department(request, dept_id: int):
     return 204, None
 
 
+
+
 @router.get("/departments/{dept_id}/members/", response=dict)
 def get_department_members(request, dept_id: int):
     """

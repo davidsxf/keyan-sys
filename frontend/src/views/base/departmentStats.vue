@@ -151,6 +151,7 @@ import { ElMessage } from 'element-plus'
 import { departmentApi } from '@/api/department'
 import { achievementApi } from '@/api/achievement'
 import { projectApi } from '@/api/project'
+import { teamApi } from '@/api/team'
 import type { Department } from '@/api/department'
 
 // 路由
@@ -198,8 +199,10 @@ const teamCount = ref(0)
 
 // 成果统计数据
 const leaderAchievements = ref<Paper[]>([])
+const allAchievements = ref<Paper[]>([])
 const achievementStats = reactive({
-  leaderCount: 0
+  leaderCount: 0,
+  totalCount: 0
 })
 
 // 项目统计数据
@@ -262,9 +265,21 @@ const loadDepartmentInfo = async () => {
         }
       }
       
-      // 计算团队数量（子部门数量）
-      if (currentDept.children) {
-        teamCount.value = currentDept.children.length
+      // 获取部门下的团队数量
+      try {
+        console.log('获取部门ID:', departmentId, '的团队数量');
+        // 确保参数顺序正确，按照teamApi.getTeams的签名
+        const teamsResponse = await teamApi.getTeams(undefined, departmentId);
+        console.log('团队API响应:', teamsResponse);
+        teamCount.value = teamsResponse.total;
+        console.log('设置团队数量为:', teamCount.value);
+      } catch (teamError) {
+        console.error('获取团队数量失败:', teamError);
+        // 作为备选，仍然使用子部门数量
+        if (currentDept.children) {
+          console.log('回退到子部门数量:', currentDept.children.length);
+          teamCount.value = currentDept.children.length;
+        }
       }
     }
     
@@ -313,6 +328,27 @@ const loadDepartmentInfo = async () => {
  * @returns 是否为第一作者/负责人
  */
 const isFirstAuthor = (paper: any): boolean => {
+  // 检查是否所有关键字段都是undefined
+  const allFieldsUndefined = 
+    paper.author_position === undefined && 
+    paper.position === undefined &&
+    paper.is_first_author === undefined &&
+    paper.author_type === undefined &&
+    paper.role === undefined &&
+    paper.leader_id === undefined && 
+    paper.principal_id === undefined && 
+    paper.person_in_charge_id === undefined &&
+    paper.order === undefined && 
+    paper.rank === undefined && 
+    paper.sort_order === undefined;
+  
+  // 如果所有关键字段都是undefined，采用宽松策略，默认视为第一作者
+  // 这是为了确保在字段缺失的情况下能够正确统计成果
+  if (allFieldsUndefined) {
+    console.log(`论文ID: ${paper.id} - 所有作者位置字段均为undefined，采用宽松匹配，视为第一作者`);
+    return true;
+  }
+  
   // 直接匹配明确的第一作者标识
   if (paper.author_position === 'first' || 
       paper.position === 'first' ||
@@ -321,30 +357,38 @@ const isFirstAuthor = (paper: any): boolean => {
       paper.author_type === 'primary' ||
       paper.role === 'first' ||
       paper.role === 'leader') {
+    console.log(`论文ID: ${paper.id} - 匹配到明确的第一作者标识`);
     return true
   }
   
   // 检查是否有负责人ID
   if (paper.leader_id || paper.principal_id || paper.person_in_charge_id) {
+    console.log(`论文ID: ${paper.id} - 存在负责人ID`);
     return true
   }
   
   // 检查作者位置文本描述
   if (paper.author_position && typeof paper.author_position === 'string') {
     const positionLower = paper.author_position.toLowerCase()
-    return positionLower.includes('first') || 
+    const isFirst = positionLower.includes('first') || 
            positionLower.includes('1st') || 
            positionLower.includes('第一') ||
            positionLower.includes('主要') ||
            positionLower.includes('主持') ||
-           positionLower.includes('负责人')
+           positionLower.includes('负责人');
+    if (isFirst) {
+      console.log(`论文ID: ${paper.id} - 从文本描述判断为第一作者`);
+    }
+    return isFirst;
   }
   
   // 检查排序（如果有order或rank字段）
   if (paper.order === 1 || paper.rank === 1 || paper.sort_order === 1) {
+    console.log(`论文ID: ${paper.id} - 排序为第一`);
     return true
   }
   
+  console.log(`论文ID: ${paper.id} - 未匹配第一作者条件`);
   return false
 }
 
@@ -358,39 +402,77 @@ const loadAchievementStats = async () => {
     
     console.log('开始获取部门成果数据，部门ID:', departmentId)
     
-    // 尝试使用部门ID获取成果
+    // 重置成果数据
+    leaderAchievements.value = []
+    achievementStats.leaderCount = 0
+    
+    // 优先使用后端提供的getDepartmentPapers API获取部门成员作为第一作者的论文
     try {
+      console.log('调用getDepartmentPapers API获取部门论文')
+      const papers = await achievementApi.getDepartmentPapers(departmentId)
+      
+      // 处理返回的数据格式
+      const paperList = Array.isArray(papers) ? papers : papers.data || papers.results || papers.items || []
+      console.log('通过getDepartmentPapers API获取到的成果数:', paperList.length)
+      
+      // 由于API已经返回了部门成员作为第一作者的论文，直接使用
+      leaderAchievements.value = paperList
+      achievementStats.leaderCount = paperList.length
+      
+      console.log('成功使用后端API获取并设置部门成果数据')
+      return
+    } catch (apiError) {
+      console.warn('调用getDepartmentPapers API失败，尝试备选方案:', apiError)
+    }
+    
+    // 备选方案：使用支持department_id参数的通用API
+    try {
+      console.log('尝试使用带department_id参数的通用论文API')
       const papers = await achievementApi.getPapers({ department_id: departmentId })
       
       // 处理返回的数据格式
       const paperList = Array.isArray(papers) ? papers : papers.data || papers.results || papers.items || []
-      console.log('通过部门ID获取到的成果数:', paperList.length)
+      console.log('通过通用API获取到的成果数:', paperList.length)
       
       // 过滤第一作者的论文
       const firstAuthorPapers = paperList.filter(paper => isFirstAuthor(paper))
+      console.log('过滤后的第一作者论文数:', firstAuthorPapers.length)
+      
       leaderAchievements.value = firstAuthorPapers
       achievementStats.leaderCount = firstAuthorPapers.length
-    } catch (apiError) {
-      console.warn('部门成果API调用失败，尝试使用通用API:', apiError)
       
-      // 备选方案：获取所有论文，然后通过成员ID过滤
+      return
+    } catch (genericApiError) {
+      console.warn('使用通用API也失败，回退到手动匹配方案:', genericApiError)
+    }
+    
+    // 最后的备选方案：只有在部门成员存在时才尝试手动匹配
+    if (departmentMembers.value.length > 0) {
+      console.log('尝试通过部门成员ID进行手动匹配，成员数量:', departmentMembers.value.length)
+      
+      // 获取所有论文
       const papers = await achievementApi.getPapers({})
       const paperList = Array.isArray(papers) ? papers : papers.data || papers.results || papers.items || []
+      console.log('获取到的总论文数:', paperList.length)
       
       // 通过部门成员ID匹配成果
       const memberAchievements = paperList.filter(paper => {
         const authorId = paper.author_id || paper.leader_id || paper.principal_id
-        return authorId && departmentMembers.value.includes(Number(authorId))
+        const isMember = authorId && departmentMembers.value.includes(Number(authorId))
+        if (isMember) {
+          console.log(`论文ID: ${paper.id} 作者ID: ${authorId} 属于部门成员`)
+        }
+        return isMember
       })
+      
+      console.log('匹配到属于部门成员的论文数:', memberAchievements.length)
       
       // 过滤第一作者的论文
       const firstAuthorPapers = memberAchievements.filter(paper => isFirstAuthor(paper))
+      console.log('最终筛选的第一作者论文数:', firstAuthorPapers.length)
+      
       leaderAchievements.value = firstAuthorPapers
       achievementStats.leaderCount = firstAuthorPapers.length
-    }
-    
-    if (leaderAchievements.value.length === 0 && departmentMembers.value.length > 0) {
-      console.info('部门成员存在但未找到匹配的成果数据')
     }
     
   } catch (error) {

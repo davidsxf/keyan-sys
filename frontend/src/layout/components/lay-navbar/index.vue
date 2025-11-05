@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useNav } from "@/layout/hooks/useNav";
 import LaySearch from "../lay-search/index.vue";
 import LayNotice from "../lay-notice/index.vue";
@@ -21,6 +22,11 @@ const {
   avatarsStyle,
   toggleSideBar
 } = useNav();
+
+// 计算属性：获取后台管理地址
+const adminUrl = computed(() => {
+  return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/admin`;
+});
 </script>
 
 <template>
@@ -47,7 +53,7 @@ const {
       <!-- 消息通知 -->
       <!-- <LayNotice id="header-notice" /> -->
       <!-- 后台管理 -->
-      <a href="http://127.0.0.1:8000/admin" target="_blank" class="navbar-bg-hover select-none flex items-center">
+      <a :href="adminUrl" target="_blank" class="navbar-bg-hover select-none flex items-center">
         <IconifyIconOffline icon="ri:admin-line" style="margin: 5px" />
         后台管理
       </a>

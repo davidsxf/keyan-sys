@@ -8,7 +8,7 @@ from .schemas import (
     AuthorIn, AuthorOut, JournalIn, JournalOut, PaperIn, PaperOut,
     AuthorFilter, JournalFilter, PaperFilter, JournalMetricIn, JournalMetricOut
 )
-from users.models import Staff
+from users.models import Staff, Department
 
 router = Router(tags=["achievement"])
 
@@ -459,6 +459,63 @@ def get_team_first_author_papers(
     
     # 分页
     papers = papers[skip:skip + limit]
+    
+    # 转换为输出模型
+    return [_paper_to_out(paper) for paper in papers]
+
+
+@router.get("/departments/{department_id}/papers/", response=List[PaperOut])
+def get_department_first_author_papers(
+    request, 
+    department_id: int, 
+    publication_year: Optional[int] = None, 
+    min_publication_year: Optional[int] = None, 
+    max_publication_year: Optional[int] = None,
+    skip: int = 0, 
+    limit: int = 100
+):
+    """
+    获取指定部门成员作为第一作者的论文列表
+    
+    Args:
+        department_id: 部门ID
+        publication_year: 指定发表年份（可选）
+        min_publication_year: 最小发表年份（可选）
+        max_publication_year: 最大发表年份（可选）
+        skip: 跳过的记录数（分页）
+        limit: 返回的最大记录数（分页）
+    
+    Returns:
+        符合条件的论文列表
+    """
+    # 获取指定的部门
+    department = get_object_or_404(Department, id=department_id)
+    
+    # 获取部门的所有成员
+    department_members = Staff.objects.filter(department=department)
+    
+    # 获取与部门成员关联的所有作者档案
+    department_authors = Author.objects.filter(staff__in=department_members)
+    
+    # 构建查询 - 部门成员作为第一作者的论文
+    papers = Paper.objects.filter(first_authors__in=department_authors).distinct()
+    
+    # 应用年份过滤条件
+    if publication_year:
+        papers = papers.filter(publication_year=publication_year)
+    if min_publication_year is not None:
+        papers = papers.filter(publication_year__gte=min_publication_year)
+    if max_publication_year is not None:
+        papers = papers.filter(publication_year__lte=max_publication_year)
+    
+    # 按发表年份降序排列
+    papers = papers.order_by("-publication_year", "title")
+    
+    # 分页
+    papers = papers[skip:skip + limit]
+    
+    # 导入转换函数
+    from achievement.api import _author_to_out, _paper_to_out
     
     # 转换为输出模型
     return [_paper_to_out(paper) for paper in papers]

@@ -20,17 +20,14 @@ from .api import api_v1
 from django.conf import settings
 from django.conf.urls.static import static
 
+
+# 自定义Admin的标题相关属性
+admin.site.site_header = '科研管理网站管理后台'  # 登录页和管理页顶部的大标题（默认：Django Administration）
+admin.site.site_title = '科研管理网站管理'        # 浏览器标签页的标题（默认：Django site admin）
+admin.site.index_title = '站点内容管理'        # 管理首页的小标题（默认：Site administration）
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/',api_v1.urls),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)  # 添加这一行
-
-
-# 仅在 DEBUG 模式下启用调试工具栏​
-if settings.DEBUG:
-    import debug_toolbar
-    urlpatterns = [
-    path('__debug__/', include(debug_toolbar.urls)),
-    
-] + urlpatterns

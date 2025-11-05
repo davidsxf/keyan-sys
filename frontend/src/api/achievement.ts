@@ -255,6 +255,18 @@ export const achievementApi = {
       throw error;
     }
   },
+
+
+  //获取部门成员作为第一作者的论文列表
+  getDepartmentPapers: async (departmentId: number, params?: { publication_year?: number; min_publication_year?: number; max_publication_year?: number; skip?: number; limit?: number }): Promise<Paper[]> => {
+    try {
+      const response = await http.get(`${API_BASE}/departments/${departmentId}/papers/`, { params });
+      return response;
+    } catch (error) {
+      console.error(`获取部门 ${departmentId} 的论文列表失败:`, error);
+      throw error;
+    }
+  },
   
   // 获取团队成员作为第一作者的论文列表
   getTeamPapers: async (teamId: number, params?: { publication_year?: number; min_publication_year?: number; max_publication_year?: number; skip?: number; limit?: number }): Promise<Paper[]> => {
