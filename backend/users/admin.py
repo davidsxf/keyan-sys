@@ -27,6 +27,9 @@ class DepartmentAdmin(ImportExportModelAdmin):
     ordering = ('-created_at',)
 
 class TeamResource(resources.ModelResource):
+    # 使用ForeignKeyWidget处理department字段
+    department = Field(attribute='department', widget=ForeignKeyWidget(Department, 'name'))
+    
     class Meta:
         model = Team
         fields = ('id', 'name', 'description', 'research_field', 'department', 'created_at', 'updated_at')
@@ -46,8 +49,8 @@ class StaffResource(resources.ModelResource):
         skip_unchanged = True
         report_skipped = False
 
+# StaffAdmin类定义，添加register装饰器
 @admin.register(Staff)
-# 修改为使用 ImportExportModelAdmin 类
 class StaffAdmin(ImportExportModelAdmin):
     resource_class = StaffResource
     list_display = (

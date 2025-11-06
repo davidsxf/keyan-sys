@@ -11,3 +11,4 @@ openpyxl
 xlrd
 django-cors-headers==4.8.0 
 PyJWT==2.10.1
+psycopg2-binary==2.9.9

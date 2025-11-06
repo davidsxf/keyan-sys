@@ -61,3 +61,16 @@ python manage.py loaddata db_backup.json
 python manage.py runserver
 ```
 在浏览器中访问 http://localhost:8000/admin/ ，使用超级用户凭据登录，您应该可以看到所有注册的模型，并能够进行数据的导入导出操作。
+
+ --username admin --email admin@example.com --password admin123
+docker-compose exec backend python manage.py createsuperuser
+
+
+# 停止并移除现有的容器
+docker-compose down
+
+# 删除现有的PostgreSQL数据卷（注意：这会删除所有数据库数据！）
+docker volume rm keyan-sys_postgres_data
+
+# 重新构建并启动容器
+docker-compose up --build -d

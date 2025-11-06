@@ -122,12 +122,39 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+import os
+from urllib.parse import urlparse
+
+# 默认使用SQLite数据库（用于本地开发）
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# 如果环境变量中有DATABASE_URL，则使用PostgreSQL数据库（用于Docker部署）
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    # 解析DATABASE_URL
+    parsed_url = urlparse(DATABASE_URL)
+    
+    # 配置PostgreSQL数据库
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': parsed_url.path[1:],  # 去掉开头的斜杠
+        'USER': parsed_url.username,
+        'PASSWORD': parsed_url.password,
+        'HOST': parsed_url.hostname,
+        'PORT': parsed_url.port or '5432',
+    }
+    
+    # 设置连接池和其他优化参数
+    DATABASES['default']['CONN_MAX_AGE'] = 600  # 连接保持600秒
+    DATABASES['default']['OPTIONS'] = {
+        'connect_timeout': 10,
+        'sslmode': 'prefer'
+    }
 
 
 # Password validation

@@ -49,7 +49,8 @@ export default {
       component: () => import("@/views/project/document.vue"),
       meta: {
         title: "项目文档",
-        showParent: true
+        showParent: true,
+        showLink: false
       }
     },
     {

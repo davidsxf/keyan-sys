@@ -7,14 +7,14 @@ services:
     container_name: keyan-db
     environment:
       POSTGRES_DB: keyan_db
-      POSTGRES_USER: keyan_user
-      POSTGRES_PASSWORD: keyan_password
+      POSTGRES_USER: keyan_admin
+      POSTGRES_PASSWORD: prfri123!
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U keyan_user -d keyan_db"]
+      test: ["CMD-SHELL", "pg_isready -U keyan_admin -d keyan_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     environment:
       - DEBUG=1
-      - DATABASE_URL=postgres://keyan_user:keyan_password@db:5432/keyan_db
+      - DATABASE_URL=postgres://keyan_admin:prfri123!@db:5432/keyan_db
       - SECRET_KEY=your_secret_key_here
     command: >
       sh -c "python manage.py migrate && \
